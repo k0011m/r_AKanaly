@@ -1,0 +1,69 @@
+__pycache__/
+.env
+dist/
+build/
+*.exe
+*.dll
+*.rAKlog
+*.vaclog
+*.sflog
+*.cmd
+artifacts/
+build_dist/
+reports/
+
+# 認証情報・ローカル環境（サンプル設定は保持）
+.env.*
+!.env.example
+/VMWARE_GUEST_CONTROL_PACKAGE/config/guest_control.json
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
+.coverage
+htmlcov/
+
+# 実行結果・解析プロジェクト・一時入力
+/output/
+/output_dir/
+/r_AKanaly_output/
+/codex_pro/
+/ghidra_cli_projects/
+/tmp/
+/VMWARE_GUEST_CONTROL_PACKAGE/runs/
+/.codex-remote-attachments/
+*.log
+/r_AKanaly_run_input.txt
+
+# ローカルで取得・展開する配布物（ソースとmanifestは残す）
+/tools_downloads/
+/tools_runtime/
+/setup_sysmon/
+/static_analysis_tools/packages/
+/VMWARE_GUEST_CONTROL_PACKAGE/packages/
+/VMWARE_GUEST_CONTROL_PACKAGE/runtime/
+
+# Guest導入時に生成した端末固有の確認結果
+/static_analysis_tools/defender-*.json
+/static_analysis_tools/die-diagnostic.json
+/static_analysis_tools/guest-checks.json
+/static_analysis_tools/guest-installation.json
+/static_analysis_tools/postboot-*.json
+/static_analysis_tools/postboot-diec.txt
+/static_analysis_tools/snapshot-result.json
+/static_analysis_tools/tool-processes.json
+/static_analysis_tools/verification.json
+
+# 本番で使用するGuest起動スクリプトは一括除外の対象外
+!VMWARE_GUEST_CONTROL_PACKAGE/guest/start_analysis_agents.cmd
+!LogAnalysisViewer.cmd
+
+# privateリポジトリではMarkdown・テスト用ファイルも管理する。
+# 公開版は別リポジトリへ整理済みファイルのみを配置する。
+
+# 端末ごとのランチャー配置・設定は配布ソースへ含めない
+/config/
+/versions/
+/current.json

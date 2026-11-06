@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "license_url": "https://learn.microsoft.com/en-us/sysinternals/license-terms",
+  "files": {
+    "Procmon64.exe": {
+      "url": "https://download.sysinternals.com/files/ProcessMonitor.zip",
+      "archive_sha256": "97330813853e0e514a11ee16a47d4c6fe90148fae834649839afb30487cc8b0b",
+      "sha256": "aa0b10e936feea464348695f8a85a2dcafd2cb3dabd1d47d8a57e7594783b27b"
+    },
+    "Sysmon64.exe": {
+      "url": "https://download.sysinternals.com/files/Sysmon.zip",
+      "archive_sha256": "00ecf1b46aec99299d3ae0bca79dc621458bd014b20b509d7c5c8e8c8611aa54",
+      "sha256": "83d31f2478dc6716cfdbf69e5c384bf043072b5f0d8d7b2eea365f709fda4352"
+    }
+  }
+}

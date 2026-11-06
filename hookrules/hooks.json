@@ -1,0 +1,45 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__SESSION_COMMAND__",
+            "commandWindows": "__SESSION_COMMAND__",
+            "timeout": 10,
+            "statusMessage": "Confirming approved project hooks"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|shell_command|functions\\.shell_command|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__GUARD_COMMAND__",
+            "commandWindows": "__GUARD_COMMAND__",
+            "timeout": 10,
+            "statusMessage": "Checking protected sample policy"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Bash|shell_command|functions\\.shell_command|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__GUARD_COMMAND__",
+            "commandWindows": "__GUARD_COMMAND__",
+            "timeout": 10,
+            "statusMessage": "Checking protected sample approval request"
+          }
+        ]
+      }
+    ]
+  }
+}

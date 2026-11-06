@@ -1,0 +1,812 @@
+[
+  {
+    "name": "absl-py",
+    "version": "2.5.1",
+    "licenses": [
+      "absl-py-2.5.1\\absl_py-2.5.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "aiohappyeyeballs",
+    "version": "2.6.2",
+    "licenses": [
+      "aiohappyeyeballs-2.6.2\\aiohappyeyeballs-2.6.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "aiohttp",
+    "version": "3.14.1",
+    "licenses": [
+      "aiohttp-3.14.1\\aiohttp-3.14.1.dist-info\\licenses\\LICENSE.txt",
+      "aiohttp-3.14.1\\aiohttp-3.14.1.dist-info\\licenses\\vendor\\llhttp\\LICENSE"
+    ]
+  },
+  {
+    "name": "aiosignal",
+    "version": "1.4.0",
+    "licenses": [
+      "aiosignal-1.4.0\\aiosignal-1.4.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "altgraph",
+    "version": "0.17.5",
+    "licenses": [
+      "altgraph-0.17.5\\altgraph-0.17.5.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "annotated-types",
+    "version": "0.7.0",
+    "licenses": [
+      "annotated-types-0.7.0\\annotated_types-0.7.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "anyio",
+    "version": "4.14.2",
+    "licenses": [
+      "anyio-4.14.2\\anyio-4.14.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "attrs",
+    "version": "26.1.0",
+    "licenses": [
+      "attrs-26.1.0\\attrs-26.1.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "audioop-lts",
+    "version": "0.2.2",
+    "licenses": [
+      "audioop-lts-0.2.2\\audioop_lts-0.2.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "beautifulsoup4",
+    "version": "4.15.0",
+    "licenses": [
+      "beautifulsoup4-4.15.0\\beautifulsoup4-4.15.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "certifi",
+    "version": "2026.7.22",
+    "licenses": [
+      "certifi-2026.7.22\\certifi-2026.7.22.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "cffi",
+    "version": "2.1.0",
+    "licenses": [
+      "cffi-2.1.0\\cffi-2.1.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "charset-normalizer",
+    "version": "3.4.9",
+    "licenses": [
+      "charset-normalizer-3.4.9\\charset_normalizer-3.4.9.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "click",
+    "version": "8.4.2",
+    "licenses": [
+      "click-8.4.2\\click-8.4.2.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "cloudpickle",
+    "version": "3.1.2",
+    "licenses": [
+      "cloudpickle-3.1.2\\cloudpickle-3.1.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "colorama",
+    "version": "0.4.6",
+    "licenses": [
+      "colorama-0.4.6\\colorama-0.4.6.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "cryptography",
+    "version": "49.0.0",
+    "licenses": [
+      "cryptography-49.0.0\\cryptography-49.0.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "discord.py",
+    "version": "2.7.1",
+    "licenses": [
+      "discord.py-2.7.1\\discord\\bin\\COPYING",
+      "discord.py-2.7.1\\discord_py-2.7.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "distro",
+    "version": "1.9.0",
+    "licenses": [
+      "distro-1.9.0\\distro-1.9.0.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "dropbox",
+    "version": "12.2.1",
+    "licenses": [
+      "dropbox-12.2.1\\dropbox-12.2.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "Farama-Notifications",
+    "version": "0.0.6",
+    "licenses": [
+      "Farama-Notifications-0.0.6\\farama_notifications-0.0.6.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "filelock",
+    "version": "3.32.2",
+    "licenses": [
+      "filelock-3.32.2\\filelock-3.32.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "frozenlist",
+    "version": "1.8.0",
+    "licenses": [
+      "frozenlist-1.8.0\\frozenlist-1.8.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "fsspec",
+    "version": "2026.7.0",
+    "licenses": [
+      "fsspec-2026.7.0\\fsspec-2026.7.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "googleapis-common-protos",
+    "version": "1.75.0",
+    "licenses": [
+      "googleapis-common-protos-1.75.0\\googleapis_common_protos-1.75.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "google-api-core",
+    "version": "2.33.0",
+    "licenses": [
+      "google-api-core-2.33.0\\google_api_core-2.33.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "google-api-python-client",
+    "version": "2.198.0",
+    "licenses": [
+      "google-api-python-client-2.198.0\\google_api_python_client-2.198.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "google-auth",
+    "version": "2.56.2",
+    "licenses": [
+      "google-auth-2.56.2\\google_auth-2.56.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "google-auth-httplib2",
+    "version": "0.4.0",
+    "licenses": [
+      "google-auth-httplib2-0.4.0\\google_auth_httplib2-0.4.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "google-auth-oauthlib",
+    "version": "1.4.0",
+    "licenses": [
+      "google-auth-oauthlib-1.4.0\\google_auth_oauthlib-1.4.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "google-genai",
+    "version": "2.22.0",
+    "licenses": [
+      "google-genai-2.22.0\\google_genai-2.22.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "greenlet",
+    "version": "3.5.4",
+    "licenses": [
+      "greenlet-3.5.4\\greenlet-3.5.4.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "grpcio",
+    "version": "1.84.0",
+    "licenses": [
+      "grpcio-1.84.0\\grpcio-1.84.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "gymnasium",
+    "version": "1.4.0",
+    "licenses": [
+      "gymnasium-1.4.0\\gymnasium-1.4.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "h11",
+    "version": "0.16.0",
+    "licenses": [
+      "h11-0.16.0\\h11-0.16.0.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "httpcore",
+    "version": "1.0.9",
+    "licenses": [
+      "httpcore-1.0.9\\httpcore-1.0.9.dist-info\\licenses\\LICENSE.md"
+    ]
+  },
+  {
+    "name": "httplib2",
+    "version": "0.32.0",
+    "licenses": [
+      "httplib2-0.32.0\\httplib2-0.32.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "httpx",
+    "version": "0.28.1",
+    "licenses": [
+      "httpx-0.28.1\\httpx-0.28.1.dist-info\\licenses\\LICENSE.md"
+    ]
+  },
+  {
+    "name": "idna",
+    "version": "3.18",
+    "licenses": [
+      "idna-3.18\\idna-3.18.dist-info\\licenses\\LICENSE.md"
+    ]
+  },
+  {
+    "name": "Jinja2",
+    "version": "3.1.6",
+    "licenses": [
+      "Jinja2-3.1.6\\jinja2-3.1.6.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "Markdown",
+    "version": "3.11.1",
+    "licenses": [
+      "Markdown-3.11.1\\markdown-3.11.1.dist-info\\licenses\\LICENSE.md"
+    ]
+  },
+  {
+    "name": "markdown-it-py",
+    "version": "4.2.0",
+    "licenses": [
+      "markdown-it-py-4.2.0\\markdown_it_py-4.2.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "MarkupSafe",
+    "version": "3.0.3",
+    "licenses": [
+      "MarkupSafe-3.0.3\\markupsafe-3.0.3.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "mdurl",
+    "version": "0.1.2",
+    "licenses": [
+      "mdurl-0.1.2\\mdurl-0.1.2.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "mpmath",
+    "version": "1.3.0",
+    "licenses": [
+      "mpmath-1.3.0\\mpmath-1.3.0.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "multidict",
+    "version": "6.7.1",
+    "licenses": [
+      "multidict-6.7.1\\multidict-6.7.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "networkx",
+    "version": "3.6.1",
+    "licenses": [
+      "networkx-3.6.1\\networkx-3.6.1.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "oauthlib",
+    "version": "3.3.1",
+    "licenses": [
+      "oauthlib-3.3.1\\oauthlib-3.3.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "packaging",
+    "version": "26.2",
+    "licenses": [
+      "packaging-26.2\\packaging-26.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pefile",
+    "version": "2024.8.26",
+    "licenses": [
+      "pefile-2024.8.26\\pefile-2024.8.26.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "pip",
+    "version": "26.2",
+    "licenses": [
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\LICENSE.txt",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\cachecontrol\\LICENSE.txt",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\certifi\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\distlib\\LICENSE.txt",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\distro\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\idna\\LICENSE.md",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\msgpack\\COPYING",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\packaging\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\pkg_resources\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\platformdirs\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\pygments\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\pyproject_hooks\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\requests\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\resolvelib\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\rich\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\tomli\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\tomli_w\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\truststore\\LICENSE",
+      "pip-26.2\\pip-26.2.dist-info\\licenses\\src\\pip\\_vendor\\urllib3\\LICENSE.txt",
+      "pip-26.2\\pip\\_vendor\\cachecontrol\\LICENSE.txt",
+      "pip-26.2\\pip\\_vendor\\certifi\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\distlib\\LICENSE.txt",
+      "pip-26.2\\pip\\_vendor\\distro\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\idna\\LICENSE.md",
+      "pip-26.2\\pip\\_vendor\\msgpack\\COPYING",
+      "pip-26.2\\pip\\_vendor\\packaging\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\pkg_resources\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\platformdirs\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\pygments\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\pyproject_hooks\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\requests\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\resolvelib\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\rich\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\tomli\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\tomli_w\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\truststore\\LICENSE",
+      "pip-26.2\\pip\\_vendor\\urllib3\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "playwright",
+    "version": "1.61.0",
+    "licenses": [
+      "playwright-1.61.0\\playwright-1.61.0.dist-info\\licenses\\LICENSE",
+      "playwright-1.61.0\\playwright\\driver\\LICENSE",
+      "playwright-1.61.0\\playwright\\driver\\package\\LICENSE",
+      "playwright-1.61.0\\playwright\\driver\\package\\NOTICE",
+      "playwright-1.61.0\\playwright\\driver\\package\\ThirdPartyNotices.txt"
+    ]
+  },
+  {
+    "name": "propcache",
+    "version": "0.5.2",
+    "licenses": [
+      "propcache-0.5.2\\propcache-0.5.2.dist-info\\licenses\\LICENSE",
+      "propcache-0.5.2\\propcache-0.5.2.dist-info\\licenses\\NOTICE"
+    ]
+  },
+  {
+    "name": "protobuf",
+    "version": "7.35.1",
+    "licenses": [
+      "protobuf-7.35.1\\protobuf-7.35.1.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "proto-plus",
+    "version": "1.28.2",
+    "licenses": [
+      "proto-plus-1.28.2\\proto_plus-1.28.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pyasn1",
+    "version": "0.6.4",
+    "licenses": [
+      "pyasn1-0.6.4\\pyasn1-0.6.4.dist-info\\licenses\\LICENSE.rst"
+    ]
+  },
+  {
+    "name": "pyasn1_modules",
+    "version": "0.4.2",
+    "licenses": [
+      "pyasn1_modules-0.4.2\\pyasn1_modules-0.4.2.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "pycparser",
+    "version": "3.0",
+    "licenses": [
+      "pycparser-3.0\\pycparser-3.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pydantic",
+    "version": "2.13.4",
+    "licenses": [
+      "pydantic-2.13.4\\pydantic-2.13.4.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pydantic_core",
+    "version": "2.46.4",
+    "licenses": [
+      "pydantic_core-2.46.4\\pydantic_core-2.46.4.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pyee",
+    "version": "13.0.1",
+    "licenses": [
+      "pyee-13.0.1\\pyee-13.0.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "Pygments",
+    "version": "2.20.0",
+    "licenses": [
+      "Pygments-2.20.0\\pygments-2.20.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pyinstaller",
+    "version": "6.20.0",
+    "licenses": [
+      "pyinstaller-6.20.0\\pyinstaller-6.20.0.dist-info\\licenses\\COPYING.txt"
+    ]
+  },
+  {
+    "name": "pyinstaller-hooks-contrib",
+    "version": "2026.5",
+    "licenses": [
+      "pyinstaller-hooks-contrib-2026.5\\pyinstaller_hooks_contrib-2026.5.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pyparsing",
+    "version": "3.3.2",
+    "licenses": [
+      "pyparsing-3.3.2\\pyparsing-3.3.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "python-dotenv",
+    "version": "1.2.2",
+    "licenses": [
+      "python-dotenv-1.2.2\\python_dotenv-1.2.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "python-evtx",
+    "version": "0.8.1",
+    "licenses": [
+      "python-evtx-0.8.1\\python_evtx-0.8.1.dist-info\\licenses\\LICENSE.TXT"
+    ]
+  },
+  {
+    "name": "pywin32-ctypes",
+    "version": "0.2.3",
+    "licenses": [
+      "pywin32-ctypes-0.2.3\\pywin32_ctypes-0.2.3.dist-info\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "requests",
+    "version": "2.34.2",
+    "licenses": [
+      "requests-2.34.2\\requests-2.34.2.dist-info\\licenses\\LICENSE",
+      "requests-2.34.2\\requests-2.34.2.dist-info\\licenses\\NOTICE"
+    ]
+  },
+  {
+    "name": "requests-oauthlib",
+    "version": "2.0.0",
+    "licenses": [
+      "requests-oauthlib-2.0.0\\requests_oauthlib-2.0.0.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "rich",
+    "version": "15.0.0",
+    "licenses": [
+      "rich-15.0.0\\rich-15.0.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "setuptools",
+    "version": "82.0.1",
+    "licenses": [
+      "setuptools-82.0.1\\setuptools-82.0.1.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\autocommand-2.2.2.dist-info\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\backports.tarfile-1.2.0.dist-info\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\jaraco.text-4.0.0.dist-info\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\jaraco_context-6.1.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\jaraco_functools-4.4.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\more_itertools-10.8.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\packaging-26.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\platformdirs-4.4.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\tomli-2.4.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\_vendor\\wheel-0.46.3.dist-info\\licenses\\LICENSE.txt",
+      "setuptools-82.0.1\\setuptools\\_vendor\\zipp-3.23.0.dist-info\\licenses\\LICENSE",
+      "setuptools-82.0.1\\setuptools\\config\\NOTICE",
+      "setuptools-82.0.1\\setuptools\\config\\_validate_pyproject\\NOTICE"
+    ]
+  },
+  {
+    "name": "sniffio",
+    "version": "1.3.1",
+    "licenses": [
+      "sniffio-1.3.1\\sniffio-1.3.1.dist-info\\LICENSE"
+    ]
+  },
+  {
+    "name": "soupsieve",
+    "version": "2.9.2",
+    "licenses": [
+      "soupsieve-2.9.2\\soupsieve-2.9.2.dist-info\\licenses\\LICENSE.md"
+    ]
+  },
+  {
+    "name": "stable_baselines3",
+    "version": "2.9.0",
+    "licenses": [
+      "stable_baselines3-2.9.0\\stable_baselines3-2.9.0.dist-info\\licenses\\LICENSE",
+      "stable_baselines3-2.9.0\\stable_baselines3-2.9.0.dist-info\\licenses\\NOTICE"
+    ]
+  },
+  {
+    "name": "stone",
+    "version": "3.5.4",
+    "licenses": [
+      "stone-3.5.4\\stone-3.5.4.dist-info\\licenses\\LICENSE",
+      "stone-3.5.4\\stone\\_vendor\\ply\\LICENSE"
+    ]
+  },
+  {
+    "name": "sympy",
+    "version": "1.14.0",
+    "licenses": [
+      "sympy-1.14.0\\sympy-1.14.0.dist-info\\licenses\\LICENSE",
+      "sympy-1.14.0\\sympy\\parsing\\latex\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "tenacity",
+    "version": "9.1.4",
+    "licenses": [
+      "tenacity-9.1.4\\tenacity-9.1.4.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "tensorboard",
+    "version": "2.21.0",
+    "licenses": [
+      "tensorboard-2.21.0\\tensorboard-2.21.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "torch",
+    "version": "2.14.1+cpu",
+    "licenses": [
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\FP16\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\FXdiv\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\NNPACK\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\NVTX\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\NVTX\\docs\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\NVTX\\python\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\NVTX\\rust\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\NVTX\\tools\\docs\\github-markdown-css\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\VulkanMemoryAllocator\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\XNNPACK\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\aiter\\3rdparty\\composable_kernel\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\aiter\\3rdparty\\composable_kernel\\docs\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\aiter\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\benchmark\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\composable_kernel\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\composable_kernel\\docs\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\cpp-httplib\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\cpuinfo\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\cpuinfo\\deps\\clog\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\cudnn_frontend\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\cutlass\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\cutlass\\python\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\composable_kernel\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\composable_kernel\\docs\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\cpuinfo\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\cpuinfo\\deps\\clog\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\cutlass\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\cutlass\\python\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\external\\hipify_torch\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\fbgemm_gpu\\docs\\src\\general\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\fbgemm_gpu\\experimental\\hstu\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\fbgemm_gpu\\src\\quantize_ops\\mx\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fbgemm\\fbgemm_gpu\\test\\quantize\\mx\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\csrc\\composable_kernel\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\csrc\\composable_kernel\\docs\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\csrc\\cutlass\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\csrc\\cutlass\\python\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\flash_attn\\cute\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\third_party\\aiter\\3rdparty\\composable_kernel\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\third_party\\aiter\\3rdparty\\composable_kernel\\docs\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flash-attention\\third_party\\aiter\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flatbuffers\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flatbuffers\\dart\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\flatbuffers\\swift\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\fmt\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\gemmlowp\\gemmlowp\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\gloo\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\ideep\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\ideep\\mkl-dnn\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\ideep\\mkl-dnn\\third_party\\gtest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\ideep\\mkl-dnn\\third_party\\opencl\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\kineto\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\kineto\\libkineto\\third_party\\dynolog_headers\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\kineto\\libkineto\\third_party\\fmt\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\kineto\\libkineto\\third_party\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\llvm-openmp\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mimalloc\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\miniz-3.0.2\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\external\\composable_kernel\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\external\\composable_kernel\\docs\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\external\\cutlass\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\external\\cutlass\\python\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\external\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\external\\hipify_torch\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\mslk\\mslk\\attention\\flash_attn\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\onnx\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\onnx\\third_party\\pybind11\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\perfetto\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\third_party\\benchmark\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\third_party\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\third_party\\googletest\\googlemock\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\third_party\\googletest\\googlemock\\scripts\\generator\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\third_party\\googletest\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\protobuf\\third_party\\utf8_range\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\psimd\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\pthreadpool\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\pybind11\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\python-peachpy\\LICENSE.rst",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\sleef\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\googletest\\googlemock\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\googletest\\googlemock\\scripts\\generator\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\googletest\\googletest\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\libnop\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\libuv\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\pybind11\\LICENSE",
+      "torch-2.14.1+cpu\\torch-2.14.1+cpu.dist-info\\licenses\\third_party\\tensorpipe\\third_party\\pybind11\\tools\\clang\\LICENSE.txt",
+      "torch-2.14.1+cpu\\torch\\_vendor\\packaging\\LICENSE",
+      "torch-2.14.1+cpu\\torch\\_vendor\\quack\\LICENSE"
+    ]
+  },
+  {
+    "name": "typing_extensions",
+    "version": "4.15.0",
+    "licenses": [
+      "typing_extensions-4.15.0\\typing_extensions-4.15.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "typing-inspection",
+    "version": "0.4.2",
+    "licenses": [
+      "typing-inspection-0.4.2\\typing_inspection-0.4.2.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "uritemplate",
+    "version": "4.2.0",
+    "licenses": [
+      "uritemplate-4.2.0\\uritemplate-4.2.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "urllib3",
+    "version": "2.7.0",
+    "licenses": [
+      "urllib3-2.7.0\\urllib3-2.7.0.dist-info\\licenses\\LICENSE.txt"
+    ]
+  },
+  {
+    "name": "websockets",
+    "version": "16.1.1",
+    "licenses": [
+      "websockets-16.1.1\\websockets-16.1.1.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "Werkzeug",
+    "version": "3.1.9",
+    "licenses": [
+      "Werkzeug-3.1.9\\werkzeug-3.1.9.dist-info\\licenses\\LICENSE.txt",
+      "Werkzeug-3.1.9\\werkzeug\\debug\\shared\\ICON_LICENSE.md"
+    ]
+  },
+  {
+    "name": "yarl",
+    "version": "1.24.2",
+    "licenses": [
+      "yarl-1.24.2\\yarl-1.24.2.dist-info\\licenses\\LICENSE",
+      "yarl-1.24.2\\yarl-1.24.2.dist-info\\licenses\\NOTICE"
+    ]
+  },
+  {
+    "name": "annotated-types",
+    "version": "0.8.0",
+    "licenses": [
+      "annotated-types-0.8.0\\annotated_types-0.8.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "packaging",
+    "version": "26.3",
+    "licenses": [
+      "packaging-26.3\\packaging-26.3.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pydantic",
+    "version": "2.13.5",
+    "licenses": [
+      "pydantic-2.13.5\\pydantic-2.13.5.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "pydantic_core",
+    "version": "2.46.5",
+    "licenses": [
+      "pydantic_core-2.46.5\\pydantic_core-2.46.5.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "typing_extensions",
+    "version": "4.16.0",
+    "licenses": [
+      "typing_extensions-4.16.0\\typing_extensions-4.16.0.dist-info\\licenses\\LICENSE"
+    ]
+  },
+  {
+    "name": "typing-inspection",
+    "version": "0.4.4",
+    "licenses": [
+      "typing-inspection-0.4.4\\typing_inspection-0.4.4.dist-info\\licenses\\LICENSE"
+    ]
+  }
+]

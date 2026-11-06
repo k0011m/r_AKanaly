@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "packages": [
+    {
+      "tool": "die",
+      "version": "3.21",
+      "file": "die_win64_portable_3.21_x64.zip",
+      "url": "https://github.com/horsicq/DIE-engine/releases/download/3.21/die_win64_portable_3.21_x64.zip",
+      "bytes": 25197854,
+      "sha256": "078f2934f267392247f9c7b759a1c2457a48bc2000b25b80c2f129955ee4a3b9",
+      "published_hash_verified": true,
+      "published_hash": {
+        "algorithm": "sha256",
+        "value": "078f2934f267392247f9c7b759a1c2457a48bc2000b25b80c2f129955ee4a3b9"
+      }
+    },
+    {
+      "tool": "floss",
+      "version": "v3.1.1",
+      "file": "floss-v3.1.1-windows.zip",
+      "url": "https://github.com/mandiant/flare-floss/releases/download/v3.1.1/floss-v3.1.1-windows.zip",
+      "bytes": 31580022,
+      "sha256": "6c71089b8c629c69424b042769f1565f71adc6cd24b2f8d3713c96fa7fdac2fb",
+      "published_hash_verified": false
+    },
+    {
+      "tool": "capa",
+      "version": "v9.4.0",
+      "file": "capa-v9.4.0-windows.zip",
+      "url": "https://github.com/mandiant/capa/releases/download/v9.4.0/capa-v9.4.0-windows.zip",
+      "bytes": 35994071,
+      "sha256": "670ab1a58b81f59cb57533bf4021ac1e7033fbe9b5d5cc180f796976081e3bb5",
+      "published_hash_verified": true,
+      "published_hash": {
+        "algorithm": "sha256",
+        "value": "670ab1a58b81f59cb57533bf4021ac1e7033fbe9b5d5cc180f796976081e3bb5"
+      }
+    },
+    {
+      "tool": "ilspy_gui",
+      "version": "v11.0",
+      "file": "ILSpy_windows_selfcontained_11.0.0.9375-x64.zip",
+      "url": "https://github.com/icsharpcode/ILSpy/releases/download/v11.0/ILSpy_windows_selfcontained_11.0.0.9375-x64.zip",
+      "bytes": 53965994,
+      "sha256": "7f8dcc507095656bb509a5051b9abab9656ec45d71cb33132866020590b56e42",
+      "published_hash_verified": true,
+      "published_hash": {
+        "algorithm": "sha256",
+        "value": "7f8dcc507095656bb509a5051b9abab9656ec45d71cb33132866020590b56e42"
+      }
+    },
+    {
+      "tool": "ilspycmd",
+      "version": "11.0.0.9375",
+      "file": "ilspycmd.11.0.0.9375.nupkg",
+      "url": "https://api.nuget.org/v3-flatcontainer/ilspycmd/11.0.0.9375/ilspycmd.11.0.0.9375.nupkg",
+      "bytes": 4861836,
+      "sha256": "8f555b3fca90a1d7a59050d78539c69deedaad421756bd4fe478d135bdac2dea",
+      "published_hash_verified": false
+    },
+    {
+      "tool": "dotnet",
+      "version": "10.0.12",
+      "file": "dotnet-runtime-10.0.12-win-x64.zip",
+      "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-win-x64.zip",
+      "bytes": 36960258,
+      "sha256": "da3947e6acbb5228e4e987c7585aa40ce2d7000856e3da0804e6ee3771e806dc",
+      "published_hash_verified": true,
+      "published_hash": {
+        "algorithm": "sha512",
+        "value": "844fa99e16fd6f44e0a7c29def7a82d7846902334d6a955248a9519a4dddb3f5acceb9c9223bef69f8c83b8ae2417537e5b76dddf79fb7117dc85b5039bc1297"
+      }
+    },
+    {
+      "tool": "ghidra",
+      "version": "12.1.3",
+      "file": "ghidra_12.1.3_PUBLIC_20260817.zip",
+      "url": "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.1.3_build/ghidra_12.1.3_PUBLIC_20260817.zip",
+      "bytes": 569445154,
+      "sha256": "93a5d11a9ad510622acaaf908c556a7b9b764d338e78a7567f3689bf5081fd54"
+    },
+    {
+      "tool": "jdk",
+      "version": "21.0.12.1+1",
+      "file": "OpenJDK21U-jdk_x64_windows_hotspot_21.0.12.1_1.zip",
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_windows_hotspot_21.0.12.1_1.zip",
+      "bytes": 205073461,
+      "sha256": "f9d6e191ab098c0d416e7d588a24420a8621cd2f4720dab2459b8b7b2d2d8b4e"
+    }
+  ]
+}

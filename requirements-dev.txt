@@ -1,0 +1,7 @@
+# Windows Hostの開発・単体テスト・EXEビルド用。GuestのGhidra依存は別途導入する。
+-r requirements-codex.txt
+-r requirements-dynamic.txt
+-r requirements-deployment.txt
+-r VMWARE_GUEST_CONTROL_PACKAGE/guest/requirements-zip.txt
+rich==15.0.0
+pyinstaller==6.20.0

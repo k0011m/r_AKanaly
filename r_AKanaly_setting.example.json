@@ -1,0 +1,129 @@
+{
+  "vmware": {
+    "vmrun_path": null,
+    "vmrun_type": "ws",
+    "vmx_path": "C:\\VMs\\Analysis\\Analysis.vmx",
+    "snapshot_name": "dynamic-ready",
+    "encrypted_vm_password_required": true,
+    "startup_timeout_seconds": 120
+  },
+  "guest": {
+    "prompt_username": false,
+    "username": "analysis"
+  },
+  "credentials": {
+    "env_file_path": ".env"
+  },
+  "malware_transfer": {
+    "host_path": null,
+    "guest_path": "C:\\Samples\\sample.exe",
+    "zip_password": null,
+    "zip_member": null,
+    "zip_max_uncompressed_bytes": 536870912
+  },
+  "static_analysis": {
+    "yara_rule_path": null
+  },
+  "output_directories": {
+    "use_common_output_dir": true,
+    "common_output_dir": "C:\\r_AKanaly-work\\output",
+    "surface_analysis_output_dir": null,
+    "static_analysis_output_dir": null,
+    "dynamic_analysis_output_dir": null
+  },
+  "codex_malware_guard": {
+    "enabled": true,
+    "mode": "block",
+    "fail_closed": true,
+    "extra_protected_paths": [],
+    "dangerous_tokens": [
+      "cmd",
+      "cmd.exe",
+      "powershell",
+      "powershell.exe",
+      "pwsh",
+      "pwsh.exe",
+      "start",
+      "Start-Process",
+      "Invoke-Item",
+      "ii",
+      "saps",
+      "&",
+      "rundll32",
+      "rundll32.exe",
+      "regsvr32",
+      "regsvr32.exe",
+      "wscript",
+      "wscript.exe",
+      "cscript",
+      "cscript.exe",
+      "mshta",
+      "mshta.exe"
+    ]
+  },
+  "developer_variables": {
+    "dev_var": false,
+    "codex_app_full_path": null
+  },
+  "llm": {
+    "codex_project_dir": "C:\\r_AKanaly-work\\codex-project",
+    "analysis_output_dir": "C:\\r_AKanaly-work\\reports",
+    "language": "Japanese",
+    "report_format": "html",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "medium",
+    "timeouts": {
+      "mcp_startup_seconds": 120,
+      "mcp_tool_seconds": 600,
+      "hook_preflight_seconds": 10,
+      "hook_marker_seconds": 15,
+      "hook_poll_interval_seconds": 0.25,
+      "codex_runtime_check_seconds": 10,
+      "rules_validation_seconds": 15
+    }
+  },
+  "static_vm": {
+    "enabled": true,
+    "security_strategy": "legacy_snapshot",
+    "visual_control": true,
+    "snapshot_name": "static-ready",
+    "guest_root": "C:\\Users\\Public\\CodexGuestAgent\\analysis_bench",
+    "guest_python": "C:\\Users\\Public\\r_AKanaly\\runtime\\python\\pythonw.exe",
+    "ready_timeout_seconds": 180,
+    "save_snapshot": false,
+    "snapshot_timing": "after_shutdown"
+  },
+  "dynamic_analysis": {
+    "llm_control": {
+      "enabled": true,
+      "instruction_file": "prompts/dynamic_default.md",
+      "prompt": null,
+      "allow_guest_elevation": true,
+      "max_duration_seconds": 900
+    },
+    "guest_root": "C:\\Users\\Public\\r_AKanaly\\dynamic",
+    "task_name": "r_AKanaly_DynamicCapture",
+    "execution_timeout_seconds": 300,
+    "post_exit_seconds": 10,
+    "ready_timeout_seconds": 120,
+    "finalize_timeout_seconds": 180,
+    "poll_interval_seconds": 2,
+    "transfer_attempts": 3,
+    "transfer_timeout_seconds": 1800,
+    "conversion_timeout_seconds": 600,
+    "max_log_bytes": 4294967296,
+    "min_free_bytes": 2147483648,
+    "require_defender_disabled": true,
+    "host_procmon_path": "tools_runtime/ProcessMonitor/Procmon64.exe",
+    "sysmon_enabled": true,
+    "procmon_enabled": true,
+    "etw_enabled": true,
+    "sample_task_name": "r_AKanaly_DynamicSample",
+    "raw_transfer_compression": true,
+    "compression_timeout_seconds": 1800
+  },
+  "full_auto": {
+    "enabled": false,
+    "recursive": true
+  }
+}
