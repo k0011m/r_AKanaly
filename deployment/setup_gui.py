@@ -65,8 +65,20 @@ class Setup(SetupWizard):
                     widget.configure(text=self.tr('VMwareは事前導入が必要です。解析ツールは各公式配布元から取得・照合します。Procmon・Sysmonは利用規約への同意が必要です。', 'Install VMware first. Analysis tools are downloaded and verified from their official sources. Procmon and Sysmon require license acceptance.'))
         if self.page == 3:
             ttk.Label(self.body,text=self.tr('Guest保護の設定方式（どちらも解析前に実状態を確認します）','Guest protection setup (both verify effective state before analysis)')).pack(anchor='w',pady=8)
-            for value,ja,en in (('manual_registry','手動レジストリ設定（推奨）','Manual registry setup (recommended)'),('official_api','起動後に公式APIで設定・確認','Apply and verify through official APIs after startup')):
-                ttk.Radiobutton(self.body,text=self.tr(ja,en),variable=self.registry_profile,value=value).pack(anchor='w')
+            self.protection_choice=ttk.Combobox(self.body,state='readonly',values=(self.tr('手動レジストリ設定（推奨）','Manual registry setup (recommended)'),self.tr('起動後に公式APIで設定・確認','Apply and verify through official APIs after startup')),width=65)
+            self.protection_choice.current(0 if self.registry_profile.get()=='manual_registry' else 1)
+            self.protection_choice.pack(anchor='w')
+            self.protection_choice.bind('<<ComboboxSelected>>',self.change_protection_choice)
+            self.manual_baseline_panel=ttk.Frame(self.body)
+            ttk.Label(self.manual_baseline_panel,text=self.tr('対象GuestでDisableAntiSpywareを1に設定し、再起動後も値が保持され、Defenderが停止していることを確認してください。その後Guestをシャットダウンしてスナップショットを作成し、下で選択してください。構築前に復元・再確認します。','In the selected Guest, set DisableAntiSpyware to 1 and confirm it persists after restart with Defender stopped. Shut down the Guest, create a snapshot, and select it below. Setup restores and verifies it before provisioning.'),wraplength=1000).pack(anchor='w',pady=10)
+            ttk.Label(self.manual_baseline_panel,text=self.tr('設定済み起点スナップショット（必須）','Prepared baseline snapshot (required)')).pack(anchor='w')
+            self.baseline_choice=ttk.Combobox(self.manual_baseline_panel,textvariable=self.env['base_snapshot'],width=65)
+            self.baseline_choice.pack(anchor='w',pady=6)
+            ttk.Button(self.manual_baseline_panel,text=self.tr('スナップショット一覧を更新','Refresh snapshot list'),command=self.refresh_baselines).pack(anchor='w')
+            self.automatic_baseline_panel=ttk.Frame(self.body)
+            ttk.Label(self.automatic_baseline_panel,text=self.tr('起点スナップショット（空欄＝現在）','Base snapshot (blank = current)')).pack(anchor='w')
+            ttk.Entry(self.automatic_baseline_panel,textvariable=self.env['base_snapshot'],width=65).pack(anchor='w')
+            self.change_protection_choice()
         if self.page == 4:
             for widget in self.body.winfo_children():
                 widget.destroy()
@@ -96,6 +108,30 @@ class Setup(SetupWizard):
             self.log.insert('end',self.tr('セットアップの進捗\n','Setup progress\n'))
             self.log.configure(state='disabled')
             ttk.Button(self.body,text=self.tr('Guestの画面を開く（UAC確認）','Open Guest console (UAC)'),command=self.open_console).pack(anchor='w',pady=8)
+
+    # 基点欄は方式選択の直下へまとめ、重複した自由入力欄を表示しない。
+    def entry_row(self,label,var,**kwargs):
+        if self.page==3 and var is self.env['base_snapshot']:
+            return
+        super().entry_row(label,var,**kwargs)
+
+    # 次へを待たず、プルダウン選択イベントで手動設定の説明と基点欄を切り替える。
+    def change_protection_choice(self,event=None):
+        manual=self.protection_choice.current()==0
+        self.registry_profile.set('manual_registry' if manual else 'official_api')
+        self.manual_baseline_panel.pack_forget()
+        self.automatic_baseline_panel.pack_forget()
+        (self.manual_baseline_panel if manual else self.automatic_baseline_panel).pack(fill='x',pady=10)
+
+    # VMを起動・復元せず、入力されたVMの保存点名だけをワーカーで取得する。
+    def refresh_baselines(self):
+        if self.busy:return
+        plan,secret=self.inputs()
+        if not Path(plan['vmx']).is_file():
+            messagebox.showerror('Setup',self.tr('先にVMXファイルを選択してください。','Select the VMX file first.'),parent=self)
+            return
+        vm=VMware(plan['vmrun'],plan['vmx'],plan['username'],secret['guest_password'],secret['vm_password'])
+        self.work(lambda:(plan['vmx'],vm.snapshots()),'snapshots')
 
     # Guest承認が必要な場合だけユーザー操作でVMwareコンソールを表示する。
     def open_console(self):
@@ -142,6 +178,9 @@ class Setup(SetupWizard):
             self.render()
             return
         if self.page == 3:
+            if self.registry_profile.get()=='manual_registry' and not self.env['base_snapshot'].get().strip():
+                messagebox.showerror('Setup',self.tr('設定済みの起点スナップショットを選択してください。','Select a prepared baseline snapshot.'),parent=self)
+                return
             if not Path(self.env['vmx_path'].get()).is_file():
                 messagebox.showerror('Setup', self.tr('指定したVMXファイルが存在しません。', 'Selected VMX file does not exist.'), parent=self)
                 return
@@ -255,7 +294,10 @@ class Setup(SetupWizard):
                     if self.page == 6:
                         self.activity_progress.stop()
                         self.activity_label.configure(text=self.tr('エラーで停止しました' if kind=='error' else '完了しました', 'Stopped with an error' if kind=='error' else 'Completed'))
-                    if kind=='inventory':
+                    if kind=='snapshots':
+                        if self.page==3 and value[0]==self.env['vmx_path'].get():
+                            self.baseline_choice.configure(values=value[1])
+                    elif kind=='inventory':
                         for name,record in value['tools'].items():
                             self.guest[name][0].set(record['exists'])
                         self.render()

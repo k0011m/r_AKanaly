@@ -9,7 +9,7 @@
 
 Windows上で検体の解析を進め、HTMLレポートと解析結果を保存するソフトウェアです。
 
-**バージョン：0.1.1**
+**バージョン：0.1.2**
 ダウンロードと、このバージョンの動作確認範囲・制限事項は[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)を確認してください。
 
 ## r_AKanalyとは
@@ -36,11 +36,24 @@ Guestで.NET Framework 3.5が有効でない場合は、Guestと同じWindowsビ
 
 SetupはGuestの自動ログイン、電源設定、解析用の保護設定、隔離ネットワーク、保存点（スナップショット）を設定します。普段使いのVMは指定せず、構築を開始する前に対象VMをシャットダウンしてください。
 
-Guest保護の設定方式は、手動レジストリ設定（推奨）か、起動後の公式APIによる設定・確認を選択してください。手動方式では、Setup途中の案内に従って**対象Guest内だけ**を変更し、Windowsを再起動してから再確認してください。手動方式も含め、解析時は検体投入前に保護の実状態を確認します。設定値だけで成功とは判定しません。操作を中断した場合は、同じ入力内容でSetupを再開してください。 既存のREG_QWORDも型だけでは拒否しません。64ビットWindowsでも新規作成時はREG_DWORDを使用してください。型や値だけで無効化を断定せず、再起動後の実状態で判定します。
+Guest保護の設定方式は、手動レジストリ設定（推奨）か、起動後の公式APIによる設定・確認を選択してください。手動方式をプルダウンで選ぶと、その場で注意書きと起点スナップショット欄が表示されます。対象Guestで設定し、再起動後も`DisableAntiSpyware=1`が保持され、Defenderが停止していることを確認してください。その後、Guestをシャットダウンして保存点を作成し、「スナップショット一覧を更新」から選択してください。
+
+Setupは選択した起点を復元・起動し、設定値と保護の実状態を確認してからツール・Agentを配置します。動的・静的環境は、その起点から構築した同じ共通保存点からそれぞれ派生します。既存の別の解析用保存点へ戻って構築を続けることはありません。起点の検証に失敗した場合はGuestを保持します。同じ入力内容で再開すると、復元し直さず再確認します。別の保存点を選ぶ場合は、新しいインストール先を指定してください。
+
+### 手動設定で値が消える場合の推奨確認手順
+
+まず、**対象Guest内だけ**で`HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender`の`DisableAntiSpyware`をREG_DWORDの`1`として設定し、再起動してください。値が消える場合は、次の手順を試してください。
+
+1. 同じ名前の値をREG_QWORDの`1`として作成し、再起動してください。
+2. QWORDが残っていることを確認してから、その値を削除してください。
+3. 同じ名前でREG_DWORDの`1`を作り直し、再起動してください。
+4. DWORDが保持され、Defenderの実状態もOFFであることを確認した後、Guestをシャットダウンして起点スナップショットを作成してください。
+
+これは利用者の解析用VMで2回再現した手順であり、すべての環境での成功やQWORDを挟むことの効果を保証するものではありません。Hostでは実施しないでください。64ビットWindowsでも最終的な値はREG_DWORDです。Setupは既存REG_QWORDも読み取れますが、値が1という理由だけで成功にせず、再起動後・解析前に保護の実状態を確認します。
 
 ## インストール
 
-[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.1-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
+[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.2-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
 
 1. `Setup.exe`を開き、日本語または英語を選んでください。
 2. 本体の保存先と、レポートなどの保存先を指定してください。
@@ -265,7 +278,7 @@ EXE入力ではZIP関連項目を使わないため、この`zip_password: null`
 | `llm.codex_project_dir` | Codexの解析用作業場所。レポート保存先ではありません。変更するとHook承認の確認が必要になる場合があります。 |
 | `codex_malware_guard` | Host側の操作制限。検体を替えるために変更する項目ではありません。 |
 
-追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.1の通常運用では`llm.report_format`は`"html"`を維持してください。
+追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.2の通常運用では`llm.report_format`は`"html"`を維持してください。
 
 ### 保存して、実行前に確認してください
 

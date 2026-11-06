@@ -17,6 +17,11 @@ def quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 class VMware:
+    # vmrunの件数ヘッダーを除き、復元に使用する保存点名を読み取る。
+    def snapshots(self):
+        output=self.run('listSnapshots',self.vmx)
+        return [line.strip() for line in output.splitlines()[1:] if line.strip()]
+
     # 認証はメモリ内に限定し、コマンドラインを診断出力へ含めない。
     def __init__(self, vmrun, vmx, username, password, encryption="", runner=subprocess.run):
         self.vmrun, self.vmx, self.username = str(vmrun), str(vmx), username

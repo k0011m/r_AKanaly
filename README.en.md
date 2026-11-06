@@ -9,7 +9,7 @@
 
 A Windows application that coordinates sample analysis and saves HTML reports and analysis results.
 
-**Version: 0.1.1**
+**Version: 0.1.2**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
 ## What is r_AKanaly?
@@ -36,11 +36,24 @@ If .NET Framework 3.5 is not enabled in the Guest, please attach exactly one Win
 
 Setup configures Guest automatic login, power settings, analysis-specific protection settings, an isolated network and snapshots. Please use a dedicated analysis VM and shut it down before starting the installation. Do not select a VM used for everyday work.
 
-Please select manual registry setup (recommended) or configuration and verification through official APIs after startup. For manual setup, please follow the instructions shown during Setup, modify **only the selected Guest**, restart Windows, and request verification. Both modes verify effective protection state before transferring the sample for analysis; registry values alone do not establish success. If you pause manual setup, please resume Setup with the same inputs. Existing REG_QWORD values are not rejected solely for their type. Please use REG_DWORD when creating a new value, even on 64-bit Windows. Setup verifies effective state after restart rather than treating the type or value as proof that protection is disabled.
+Please select manual registry setup (recommended) or configuration and verification through official APIs after startup. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
+
+Setup restores and boots that baseline and verifies the registry value and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot, rather than older analysis snapshots. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
+
+### Recommended troubleshooting when the value disappears
+
+In **the selected Guest only**, first set `DisableAntiSpyware` under `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender` to REG_DWORD `1` and restart. If the value disappears, please try the following:
+
+1. Create a REG_QWORD value with the same name, set it to `1`, and restart.
+2. Confirm the QWORD persists, then delete that value.
+3. Recreate the same name as REG_DWORD `1` and restart.
+4. Confirm that the DWORD persists and effective protection is OFF, then shut down the Guest and create the baseline snapshot.
+
+This sequence was reproduced twice in a user's analysis VM; neither success on every system nor the causal effect of the intermediate QWORD is established. Please do not perform it on the Host. The final value is REG_DWORD even on 64-bit Windows. Setup can also read existing REG_QWORD values, but verifies effective protection after restart and before analysis rather than accepting a value of 1 alone.
 
 ## Installation
 
-Please download `r_AKanaly-0.1.1-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
+Please download `r_AKanaly-0.1.2-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
 
 1. Open `Setup.exe` and select Japanese or English.
 2. Choose the application installation directory and the results directory.
@@ -265,7 +278,7 @@ This example records the dynamic-analysis screen every 10 seconds. `{analysis_di
 | `llm.codex_project_dir` | Codex's analysis workspace, not the report destination. Changing it may require reviewing Hook approval for the new workspace. |
 | `codex_malware_guard` | Host operation restrictions; not a setting to change when switching samples. |
 
-Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.1 operation.
+Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.2 operation.
 
 ### Please save and check the configuration before running
 

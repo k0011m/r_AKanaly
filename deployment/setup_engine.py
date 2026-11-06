@@ -7,6 +7,8 @@ import platform
 import shutil
 import time
 import uuid
+import zipfile
+import tempfile
 from contextlib import nullcontext
 from . import credentials, releases
 from .storage import atomic_json, digest, installation_lock
@@ -29,6 +31,8 @@ def preflight(plan, release_root):
         raise ValueError("Invalid VM mode / username")
     if plan.get('registry_profile','existing') not in ('existing','analysis','official_api','manual_registry'):
         raise ValueError('Unsupported Guest protection profile')
+    if plan.get('registry_profile')=='manual_registry' and not str(plan.get('base_snapshot') or '').strip():
+        raise ValueError('Manual registry setup requires a prepared baseline snapshot')
     if plan["mode"] == "copy" and (not Path(plan["clone_path"]).is_absolute() or Path(plan["clone_path"]).suffix.lower() != '.vmx'):
         raise ValueError("Clone path must be an absolute .vmx path")
     for name in ("guest.zip", "guest-manifest.json", "r_AKanaly_setting.example.json", 'sysinternals-downloads.json', 'r_AKanaly_guard.exe', 'r_AKanaly_ghidra_mcp.exe'):
@@ -89,6 +93,31 @@ class SetupEngine:
             except RuntimeError as error:
                 self.report(str(error))
                 # 失敗後も基点へ戻さず、ユーザーが修正したGuestを次の確認に使う。
+
+    # Agent配置前に署名済み配布物の読取り専用検証を実行し、起点の実効状態を記録する。
+    def verify_manual_baseline(self):
+        self.report('Guest baseline: verifying prepared registry and effective protection before deployment (UAC may be required)')
+        with zipfile.ZipFile(self.release/'guest.zip') as archive:
+            script=archive.read('dynamic/defender_gate.ps1').decode('utf-8-sig')
+        # 長いスクリプトをEncodedCommandへ埋め込むとWindowsの引数上限を超えるため、検証用ファイルだけを一時転送する。
+        remote=REMOTE+'\\baseline-check-'+uuid.uuid4().hex+'.ps1'
+        try:
+            with tempfile.TemporaryDirectory(prefix='rAK-baseline-') as directory:
+                local=Path(directory)/'baseline-check.ps1'
+                local.write_text(script,encoding='utf-8-sig')
+                self.vm.upload(local,remote)
+                result=self.vm.query('. '+quote(remote)+'; Confirm-GuestManualProtection',elevated=True,timeout=300)
+        finally:
+            try:self.vm.ps('Remove-Item -LiteralPath '+quote(remote)+' -Force -ErrorAction SilentlyContinue')
+            except Exception:self.report('Guest baseline diagnostic cleanup could not be confirmed')
+        valid=isinstance(result,dict) and result.get('success') is True
+        checks=result.get('registry_checks',[]) if isinstance(result,dict) else []
+        configured=any(row.get('read_success') is True and row.get('kind') in ('DWord','QWord') and type(row.get('value')) is int and row['value']==1 for row in checks)
+        atomic_json(self.root/'setup-reports'/'verify-baseline.json',{'snapshot':self.plan['base_snapshot'],'security':result,'complete':bool(valid and configured)})
+        if not valid or not configured:
+            reason=result.get('error') if isinstance(result,dict) else 'Invalid Guest response'
+            after=result.get('after',{}) if isinstance(result,dict) else {}
+            raise RuntimeError('Prepared baseline verification failed: '+str(reason or 'DisableAntiSpyware integer value 1 was not found')+'; state='+json.dumps(after,ensure_ascii=False)+'; Guest preserved; no tools or Agents installed')
 
     # UAC結果を受け取ってから次へ進み、標準ユーザー実行で成功としない。
     def guest_phase(self, phase):
@@ -168,10 +197,13 @@ class SetupEngine:
                     self.state['previous_snapshots']={'dynamic':previous['vmware']['snapshot_name'],'static':previous['static_vm']['snapshot_name']}
                 atomic_json(self.state_file, self.state)
             self.vm = self.vm_factory(self.plan["vmrun"], self.plan["vmx"], self.plan["username"], self.secret["guest_password"], self.secret.get("vm_password", ""))
+            manual=self.plan.get('registry_profile')=='manual_registry'
             names = self.state["snapshots"]
             if self.state["completed"] == "none":
                 if self.vm.running():
                     raise RuntimeError("Selected VM is running. Shut it down before setup; no snapshot was reverted.")
+                if manual and self.vm.snapshots().count(self.plan.get('base_snapshot'))!=1:
+                    raise ValueError('Prepared baseline snapshot must exist uniquely in selected VM')
                 if self.plan["mode"] == "copy":
                     if Path(self.plan['clone_path']).exists():
                         raise ValueError('Clone destination already exists; no files were overwritten')
@@ -187,6 +219,17 @@ class SetupEngine:
                 self.vm.shutdown()
                 self.vm.run("revertToSnapshot", self.vm.vmx, self.plan.get("base_snapshot") or names["before_setup"], timeout=600)
                 self.vm.isolate(self.state["segment"])
+                if manual:
+                    # 起点検証が失敗しても、再試行時に手動修正を上書きしない。
+                    self.vm.boot()
+                    self.checkpoint('baseline_ready')
+                else:
+                    self.checkpoint('baseline_verified')
+            if self.state['completed']=='baseline_ready':
+                self.vm.boot()
+                self.verify_manual_baseline()
+                self.checkpoint('baseline_verified')
+            if self.state['completed']=='baseline_verified':
                 self.boot_guest()
                 self.stage_guest()
                 self.guest_phase("common")
@@ -195,20 +238,17 @@ class SetupEngine:
                 self.boot_guest()
                 self.checkpoint('common_ready')
             if self.state['completed'] == 'common_ready':
-                if self.plan.get('registry_profile') == 'manual_registry':
-                    self.verify_manual_common()
-                else:
-                    self.guest_phase('verify-common')
+                self.guest_phase('verify-common')
                 self.save_snapshot(names["common"])
                 self.checkpoint("common")
             for phase, preceding in (("dynamic", "common"), ("static", "dynamic")):
                 if self.state["completed"] == preceding:
                     self.report("Guest " + phase + ": restoring baseline and waiting for startup")
                     self.vm.shutdown()
-                    baseline=self.state.get('previous_snapshots',{}).get(phase,names['common'])
+                    baseline=names['common'] if manual else self.state.get('previous_snapshots',{}).get(phase,names['common'])
                     self.vm.run("revertToSnapshot", self.vm.vmx, baseline, timeout=600)
                     self.boot_guest()
-                    if 'previous_snapshots' in self.state:
+                    if 'previous_snapshots' in self.state and not manual:
                         self.stage_guest()
                         self.guest_phase('common')
                         self.configure_login()
