@@ -80,6 +80,16 @@ function Stop-InstalledAgents {
 
 # 確認時には設定値と実稼働状態を別々に記録する。
 function Verify-Security {
+    if($choices.registry_profile -eq 'manual_registry') {
+        . (Join-Path $dynamic 'defender_gate.ps1')
+        $report=Confirm-GuestManualProtection
+        if($report.success -ne $true) {
+            $exception=New-Object System.InvalidOperationException 'Guest manual protection verification failed'
+            $exception.Data['security']=$report
+            throw $exception
+        }
+        return $report
+    }
     if($choices.registry_profile -eq 'official_api') {
         # 起動のたびにHostの検証工程から固定タスクへ指示する。自動起動トリガーは作らない。
         Start-ScheduledTask -TaskName r_AKanaly_PrepareSecurity
@@ -102,7 +112,7 @@ function Verify-Security {
     # 不一致でも実測値をHostへ返し、設定消失と保護状態を別々に診断できるようにする。
     $report=@{registry=$values;mode=$state.AMRunningMode;realtime=$state.RealTimeProtectionEnabled;behavior=$state.BehaviorMonitorEnabled;ioav=$state.IoavProtectionEnabled;tamper=$state.IsTamperProtected}
     $errors=@()
-    if($choices.registry_profile -eq 'analysis' -and -not @($values | Where-Object {$_.path -eq 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -and $_.value -eq 1 -and $_.kind -eq 'DWord'}).Count) { $errors+='Policies DisableAntiSpyware DWORD=1 was not retained' }
+    if($choices.registry_profile -eq 'analysis' -and -not @($values | Where-Object {$_.path -eq 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -and $_.value -eq 1 -and $_.kind -in @('DWord','QWord')}).Count) { $errors+='Policies DisableAntiSpyware DWORD/QWORD=1 was not retained' }
     if($choices.registry_profile -eq 'analysis' -and ($state.RealTimeProtectionEnabled -or $state.BehaviorMonitorEnabled -or $state.IoavProtectionEnabled -or $state.IsTamperProtected)) {
         $errors+='Guest protection remains active; check policy/Tamper Protection before saving snapshot'
     }
@@ -132,6 +142,7 @@ if($Phase -eq 'common') {
     }
     $marker=@{guest_only=$true;sample_directory=(Join-Path $root 'samples')}
     if($choices.registry_profile -eq 'official_api') { $marker.security_strategy='official_api_v1' }
+    if($choices.registry_profile -eq 'manual_registry') { $marker.security_strategy='manual_registry_v1' }
     $marker | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $dynamic 'guest-install-marker.json') -Encoding UTF8
     & (Join-Path $dynamic 'setup_lifecycle.ps1') -Root $dynamic -GuestUser $User | Out-Null
     if($choices.registry_profile -eq 'official_api') {

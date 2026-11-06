@@ -27,7 +27,7 @@ def preflight(plan, release_root):
         raise ValueError('Host Procmon not found')
     if plan["mode"] not in ("existing", "copy") or not plan["username"].strip():
         raise ValueError("Invalid VM mode / username")
-    if plan.get('registry_profile','existing') not in ('existing','analysis','official_api'):
+    if plan.get('registry_profile','existing') not in ('existing','analysis','official_api','manual_registry'):
         raise ValueError('Unsupported Guest protection profile')
     if plan["mode"] == "copy" and (not Path(plan["clone_path"]).is_absolute() or Path(plan["clone_path"]).suffix.lower() != '.vmx'):
         raise ValueError("Clone path must be an absolute .vmx path")
@@ -53,11 +53,12 @@ def preflight(plan, release_root):
 # 個人用設定を使わず、画面で指定されたVMだけを構築する。
 class SetupEngine:
     # 認証情報は進捗に含めず、構築内容のハッシュだけで再開先を照合する。
-    def __init__(self, plan, secret, manifest, report=print, vm_factory=VMware):
+    def __init__(self, plan, secret, manifest, report=print, vm_factory=VMware, request_action=None):
         self.plan, self.secret, self.manifest, self.report = plan, secret, manifest, report
         self.root = Path(plan["install_dir"]).resolve()
         self.release = self.root / "versions" / manifest["version"]
         self.vm_factory = vm_factory
+        self.request_action = request_action
         self.state_file = self.root / ("setup-state-" + manifest['version'] + ".json")
         self.plan_hash = hashlib.sha256(json.dumps({"plan": plan, "release": manifest["sha256"]}, sort_keys=True).encode()).hexdigest()
 
@@ -73,6 +74,21 @@ class SetupEngine:
         self.report('Guest power: disabling and verifying automatic sleep/hibernate (UAC may be required)')
         result = self.vm.prepare_setup_power()
         atomic_json(self.root / 'setup-reports' / 'power.json', result)
+
+    # 手動設定待ちの間は復元せず、再開後も同じGuestの実状態を確認する。
+    def verify_manual_common(self):
+        if self.request_action is None:
+            raise RuntimeError('Manual Guest setup required; resume with the Setup GUI. Guest state has been preserved.')
+        while True:
+            if not self.request_action({'kind':'manual_registry','vmx':self.vm.vmx}):
+                raise RuntimeError('Manual setup paused; Guest state has been preserved.')
+            self.vm.boot()
+            try:
+                self.guest_phase('verify-common')
+                return
+            except RuntimeError as error:
+                self.report(str(error))
+                # 失敗後も基点へ戻さず、ユーザーが修正したGuestを次の確認に使う。
 
     # UAC結果を受け取ってから次へ進み、標準ユーザー実行で成功としない。
     def guest_phase(self, phase):
@@ -177,7 +193,12 @@ class SetupEngine:
                 self.configure_login()
                 self.vm.shutdown()
                 self.boot_guest()
-                self.guest_phase("verify-common")
+                self.checkpoint('common_ready')
+            if self.state['completed'] == 'common_ready':
+                if self.plan.get('registry_profile') == 'manual_registry':
+                    self.verify_manual_common()
+                else:
+                    self.guest_phase('verify-common')
                 self.save_snapshot(names["common"])
                 self.checkpoint("common")
             for phase, preceding in (("dynamic", "common"), ("static", "dynamic")):
@@ -233,7 +254,7 @@ class SetupEngine:
         settings["guest"].update(username=self.plan["username"], prompt_username=False)
         settings["credentials"]["env_file_path"] = None
         settings["static_vm"].update(enabled=True, snapshot_name=self.state["snapshots"]["static"], guest_root=r"C:\Users\Public\CodexGuestAgent\analysis_bench", guest_python=r"C:\Users\Public\r_AKanaly\runtime\python\pythonw.exe")
-        settings['static_vm']['security_strategy']='official_api_v1' if self.plan.get('registry_profile')=='official_api' else 'legacy_snapshot'
+        settings['static_vm']['security_strategy']={'official_api':'official_api_v1','manual_registry':'manual_registry_v1'}.get(self.plan.get('registry_profile'),'legacy_snapshot')
         selected_python = self.plan.get('guest_tools', {}).get('Python (Ghidra / PyGhidra)', {})
         if selected_python.get('reuse'):
             settings['static_vm']['guest_python'] = selected_python['path']

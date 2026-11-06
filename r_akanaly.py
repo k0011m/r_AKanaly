@@ -245,7 +245,7 @@ def parse_static_vm_settings(data: dict[str, Any]) -> app_config.StaticVmSetting
     if timing not in ('before_shutdown', 'after_shutdown'):
         raise ConfigError('static_vm.snapshot_timing must be before_shutdown or after_shutdown')
     strategy=value.get('security_strategy','legacy_snapshot')
-    if strategy not in ('legacy_snapshot','official_api_v1'):
+    if strategy not in ('legacy_snapshot','official_api_v1','manual_registry_v1'):
         raise ConfigError('Unsupported static_vm.security_strategy')
     return app_config.StaticVmSettings(**fields, ready_timeout_seconds=seconds,
         save_snapshot=optional_bool(value, 'save_snapshot', False), snapshot_timing=timing,

@@ -54,8 +54,12 @@ function Get-GuestDefenderBypassState {
                     $check.value=$key.GetValue('DisableAntiSpyware',$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
                     $check.kind=[string]$key.GetValueKind('DisableAntiSpyware')
                     $check.read_success=$true
-                    $check.disables_defender=($check.kind -eq 'DWord' -and $check.value -eq 1)
-                    if ($check.disables_defender) { $result.bypass_reasons+=@('disable_antispyware_dword_1:'+ $path) }
+                    $check.disables_defender=($check.kind -in @('DWord','QWord') -and $check.value -eq 1)
+                    # QWORDも設定値として認識するが、Windowsが適用した証拠にはしない。
+                    $effectiveOff=($result.defender_status.read_success -and $state.RealTimeProtectionEnabled -eq $false -and $state.BehaviorMonitorEnabled -eq $false -and $state.IoavProtectionEnabled -eq $false -and $state.IsTamperProtected -eq $false)
+                    if ($check.disables_defender -and ($check.kind -eq 'DWord' -or $effectiveOff)) {
+                        $result.bypass_reasons+=@('disable_antispyware_'+$check.kind.ToLowerInvariant()+'_1:'+ $path)
+                    }
                 }
             }
         } catch {
@@ -68,12 +72,41 @@ function Get-GuestDefenderBypassState {
     return $result
 }
 
+# 手動設定は変更せず、起動直後の過渡状態を避けて実稼働状態を二回確認する。
+function Confirm-GuestManualProtection {
+    $result=@{success=$false;bypass=$false;apply_requested=$false;policy_version=3;strategy='manual_registry_v1';checks=@();stable_checks=0}
+    try {
+        $boot=(Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime
+        $remaining=90-((Get-Date)-$boot).TotalSeconds
+        if($remaining -gt 0) { Start-Sleep -Seconds ([int][Math]::Ceiling($remaining)) }
+        $result.boot_utc=$boot.ToUniversalTime().ToString('o')
+        $result.registry_checks=@((Get-GuestDefenderBypassState).registry_checks)
+        foreach($attempt in 1..2) {
+            $state=Get-MpComputerStatus -ErrorAction Stop
+            $entry=$state | Select-Object AMRunningMode,AMServiceEnabled,RealTimeProtectionEnabled,BehaviorMonitorEnabled,IoavProtectionEnabled,IsTamperProtected
+            $result.checks+=@($entry)
+            $result.after=$entry
+            # DWORD/QWORD=1だけでは通過させず、実測した保護状態がOFFであることを必須にする。
+            if($state.RealTimeProtectionEnabled -ne $false -or $state.BehaviorMonitorEnabled -ne $false -or $state.IoavProtectionEnabled -ne $false) {
+                throw 'Guest protection is active or unavailable; complete manual Guest setup and restart Windows'
+            }
+            if($state.AMRunningMode -notin @('Normal','Not running')) { throw 'Guest Defender running mode is unavailable or unsupported' }
+            if($state.IsTamperProtected -ne $false) { throw 'Guest Tamper Protection is ON or unavailable' }
+            $result.stable_checks++
+            if($attempt -eq 1) { Start-Sleep -Seconds 5 }
+        }
+        $result.success=$true
+    } catch { $result.error=$_.Exception.Message }
+    return $result
+}
+
 # 事前停止を確認できない場合だけ、初期化と無効化設定が安定するまで待つ。
 function Confirm-GuestDefenderDisabled([int]$TimeoutSeconds, [bool]$Apply = $false, [bool]$RequireEffectiveState = $false) {
     # 新規インストールの公式API方式では、レジストリ値だけの確認省略を使わない。
     $markerPath=Join-Path $PSScriptRoot 'guest-install-marker.json'
     if(Test-Path -LiteralPath $markerPath) {
         $marker=Get-Content -LiteralPath $markerPath -Raw -ErrorAction Stop | ConvertFrom-Json
+        if($marker.security_strategy -eq 'manual_registry_v1') { return (Confirm-GuestManualProtection) }
         if($marker.security_strategy -eq 'official_api_v1') { $RequireEffectiveState=$true }
     }
     $result=@{success=$false;checks=@();stable_checks=0;apply_requested=$Apply;policy_version=3;

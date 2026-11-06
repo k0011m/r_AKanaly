@@ -27,6 +27,12 @@ try {
         $result.security=& (Join-Path $root 'prepare_analysis_security.ps1') -TimeoutSeconds 180
         $result.complete=($result.security.success -eq $true -and $result.security.bypass -eq $false)
         if(-not $result.complete){$result.error='Guest effective protection settings were not confirmed'}
+    } elseif($marker.security_strategy -eq 'manual_registry_v1') {
+        $result.strategy='manual_registry_v1'
+        . (Join-Path $root 'defender_gate.ps1')
+        $result.security=Confirm-GuestManualProtection
+        $result.complete=($result.security.success -eq $true)
+        if(-not $result.complete){$result.error=$result.security.error}
     } else {throw 'Unsupported Guest security strategy'}
 } catch {$result.error=$_.Exception.Message}
 $result | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath TARGET -Encoding UTF8
@@ -41,8 +47,9 @@ $result | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath TARGET -Encoding U
         result=json.loads(local_result.read_text(encoding='utf-8-sig'))
         if result.get('request_id')!=identity:
             raise RuntimeError('Guest security response identity mismatch')
-        if getattr(session.settings,'security_strategy','legacy_snapshot')=='official_api_v1' and result.get('strategy')!='official_api_v1':
-            raise RuntimeError('Required Guest official API security strategy is missing')
+        expected=getattr(session.settings,'security_strategy','legacy_snapshot')
+        if expected!='legacy_snapshot' and result.get('strategy')!=expected:
+            raise RuntimeError('Required Guest security strategy is missing: '+expected)
         if result.get('complete') is not True:
             raise RuntimeError('Guest security preparation failed: '+str(result.get('error','invalid response')))
         return result

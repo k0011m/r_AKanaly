@@ -9,7 +9,7 @@
 
 Windows上で検体の解析を進め、HTMLレポートと解析結果を保存するソフトウェアです。
 
-**バージョン：0.1.0**
+**バージョン：0.1.1**
 ダウンロードと、このバージョンの動作確認範囲・制限事項は[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)を確認してください。
 
 ## r_AKanalyとは
@@ -36,9 +36,11 @@ Guestで.NET Framework 3.5が有効でない場合は、Guestと同じWindowsビ
 
 SetupはGuestの自動ログイン、電源設定、解析用の保護設定、隔離ネットワーク、保存点（スナップショット）を設定します。普段使いのVMは指定せず、構築を開始する前に対象VMをシャットダウンしてください。
 
+Guest保護の設定方式は、手動レジストリ設定（推奨）か、起動後の公式APIによる設定・確認を選択してください。手動方式では、Setup途中の案内に従って**対象Guest内だけ**を変更し、Windowsを再起動してから再確認してください。手動方式も含め、解析時は検体投入前に保護の実状態を確認します。設定値だけで成功とは判定しません。操作を中断した場合は、同じ入力内容でSetupを再開してください。 既存のREG_QWORDも型だけでは拒否しません。64ビットWindowsでも新規作成時はREG_DWORDを使用してください。型や値だけで無効化を断定せず、再起動後の実状態で判定します。
+
 ## インストール
 
-[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.0-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
+[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.1-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
 
 1. `Setup.exe`を開き、日本語または英語を選んでください。
 2. 本体の保存先と、レポートなどの保存先を指定してください。
@@ -263,7 +265,7 @@ EXE入力ではZIP関連項目を使わないため、この`zip_password: null`
 | `llm.codex_project_dir` | Codexの解析用作業場所。レポート保存先ではありません。変更するとHook承認の確認が必要になる場合があります。 |
 | `codex_malware_guard` | Host側の操作制限。検体を替えるために変更する項目ではありません。 |
 
-追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.0の通常運用では`llm.report_format`は`"html"`を維持してください。
+追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.1の通常運用では`llm.report_format`は`"html"`を維持してください。
 
 ### 保存して、実行前に確認してください
 

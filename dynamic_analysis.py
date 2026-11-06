@@ -340,6 +340,16 @@ class DynamicSession:
         (self.output / (phase + '_defender.json')).write_text(json.dumps(result, indent=2), encoding='utf-8')
         if result.get('token') != token or result.get('success') is not True or result.get('policy_version') != 3:
             raise RuntimeError('Guest Defender check failed: ' + str(result.get('error', 'invalid response')))
+        if result.get('strategy') == 'manual_registry_v1':
+            # 手動設定は変更せず、Guestが記録した二回の実状態をHost側でも照合する。
+            checks=result.get('checks') or []
+            required=('RealTimeProtectionEnabled','BehaviorMonitorEnabled','IoavProtectionEnabled','IsTamperProtected')
+            if (result.get('apply_requested') is not False or result.get('bypass') is not False
+                    or result.get('stable_checks',0) < 2 or len(checks) < 2
+                    or any(entry.get('AMRunningMode') not in ('Normal','Not running')
+                           or any(entry.get(key) is not False for key in required) for entry in checks[-2:])):
+                raise RuntimeError('Guest manual protection verification evidence is invalid')
+            return
         if result.get('bypass') is True:
             if not valid_defender_bypass(result):
                 raise RuntimeError('Guest Defender check failed: invalid bypass evidence')

@@ -21,7 +21,11 @@ class Setup(SetupWizard):
         self.busy = False
         self.package = None
         self.installed_manifest = None
+        self.activity_tick = 0
+        self.activity_state = 'idle'
+        self.completed_phases = 0
         super().__init__()
+        self.registry_profile=tk.StringVar(value='manual_registry')
         # ILSpyはdotnet+DLL構成で配布するため、単独exe指定は受け付けない。
         for name in ('ILSpy CLI', 'YARA'):
             self.guest.pop(name, None)
@@ -59,6 +63,10 @@ class Setup(SetupWizard):
             for widget in self.body.winfo_children():
                 if isinstance(widget, ttk.Label):
                     widget.configure(text=self.tr('VMwareは事前導入が必要です。解析ツールは各公式配布元から取得・照合します。Procmon・Sysmonは利用規約への同意が必要です。', 'Install VMware first. Analysis tools are downloaded and verified from their official sources. Procmon and Sysmon require license acceptance.'))
+        if self.page == 3:
+            ttk.Label(self.body,text=self.tr('Guest保護の設定方式（どちらも解析前に実状態を確認します）','Guest protection setup (both verify effective state before analysis)')).pack(anchor='w',pady=8)
+            for value,ja,en in (('manual_registry','手動レジストリ設定（推奨）','Manual registry setup (recommended)'),('official_api','起動後に公式APIで設定・確認','Apply and verify through official APIs after startup')):
+                ttk.Radiobutton(self.body,text=self.tr(ja,en),variable=self.registry_profile,value=value).pack(anchor='w')
         if self.page == 4:
             for widget in self.body.winfo_children():
                 widget.destroy()
@@ -71,9 +79,18 @@ class Setup(SetupWizard):
             text.configure(state='normal')
             text.delete('1.0','2.0')
             text.insert('1.0',self.tr('次へ：実際の構築を開始。Guest自動ログイン・自動スリープ/休止の無効化・Host指示によるGuest保護設定・実状態確認・隔離LAN・保存点作成を含みます。\n', 'Next starts real setup, including Guest autologin, disabling automatic sleep/hibernate, Host-requested Guest protection configuration and verification, isolated LAN and snapshots.\n'))
+            text.insert('2.0',self.tr('選択したGuest保護方式：','Selected Guest protection mode: ')+self.registry_profile.get()+'\n')
             text.configure(state='disabled')
         if self.page == 6:
-            self.log = self.body.winfo_children()[0]
+            status = ttk.Frame(self.body)
+            status.pack(fill='x', before=self.body.winfo_children()[0], pady=8)
+            self.activity_label = ttk.Label(status, text=self.tr('開始待ち', 'Waiting to start'))
+            self.activity_label.pack(anchor='w')
+            self.phase_progress = ttk.Progressbar(status, maximum=6, mode='determinate')
+            self.phase_progress.pack(fill='x', pady=4)
+            self.activity_progress = ttk.Progressbar(status, mode='indeterminate')
+            self.activity_progress.pack(fill='x')
+            self.log = next(widget for widget in self.body.winfo_children() if isinstance(widget, tk.Text))
             self.log.configure(state='normal')
             self.log.delete('1.0','end')
             self.log.insert('end',self.tr('セットアップの進捗\n','Setup progress\n'))
@@ -99,7 +116,7 @@ class Setup(SetupWizard):
     def inputs(self):
         plan={'install_dir':self.install_dir.get(), 'output_dir':self.output_dir.get(), 'vmrun':self.host['vmrun'][1].get(),
               'vmx':self.env['vmx_path'].get(), 'username':self.env['guest_username'].get(), 'mode':self.env['vm_mode'].get(),
-              'clone_path':self.env['clone_path'].get(), 'base_snapshot':self.env['base_snapshot'].get(), 'registry_profile':'official_api',
+              'clone_path':self.env['clone_path'].get(), 'base_snapshot':self.env['base_snapshot'].get(), 'registry_profile':self.registry_profile.get(),
               'guest_tools':{k:{'reuse':v[0].get(),'path':v[1].get()} for k,v in self.guest.items()}}
         plan['accept_sysinternals_license'] = getattr(self, 'accepted_sysinternals', False)
         plan['host_procmon'] = self.host['Procmon (Host conversion)'][1].get() if self.host['Procmon (Host conversion)'][0].get() else None
@@ -187,11 +204,31 @@ class Setup(SetupWizard):
                 if source.resolve() != (root/name).resolve():
                     shutil.copy2(source,root/name)
             atomic_json(root/'update.json',dict(trust,check_on_start=False))
-        SetupEngine(plan,secret,manifest,report=lambda msg:self.events.put(('log',msg))).apply()
+        SetupEngine(plan,secret,manifest,report=lambda msg:self.events.put(('log',msg)),request_action=self.wait_for_manual_setup).apply()
+
+    # ワーカーを待機させ、Tk操作とユーザーの回答はGUIスレッドへ渡す。
+    def wait_for_manual_setup(self, details):
+        answer=queue.Queue()
+        self.events.put(('manual_action',(details,answer)))
+        return answer.get()
+
+    # 手動変更中は進捗を止め、再確認するまで同じVMを保持する。
+    def show_manual_setup(self, details, answer):
+        self.activity_state='waiting'
+        self.activity_progress.stop()
+        self.activity_label.configure(text=self.tr('Guestの手動設定・再起動待ち','Waiting for manual Guest setup and restart'))
+        prompt=self.tr('対象Guestのレジストリエディターで設定を変更し、Windowsを再起動してください。Hostは変更しないでください。\n\nキー：HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\n値：DisableAntiSpyware / 1\n型：REG_DWORD（32ビット）または既存のREG_QWORD（64ビット）を読み取ります。OSが64ビットでもQWORDを選ぶ必要はありません。新規作成はREG_DWORDを使用してください。既存のQWORDは型だけでは拒否しませんが、Windowsへの反映を保証するものではありません。\n\n再起動とログインが完了したら「はい」で実状態を確認します。設定値だけでは成功にしません。「いいえ」はGuest状態を保持して中断します。\n\n対象VM：', 'Edit the registry in the selected Guest and restart Windows. Do not modify the Host.\n\nKey: HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\nValue: DisableAntiSpyware / 1\nType: REG_DWORD (32-bit) or an existing REG_QWORD (64-bit) can be read. A 64-bit OS does not require QWORD. Please use REG_DWORD for new values. Existing QWORD values are not rejected solely for their type, but their effect on Windows is not guaranteed.\n\nAfter restart and logon, choose Yes to verify effective state. The registry value alone does not establish success. No pauses setup and preserves Guest state.\n\nTarget VM: ')+details['vmx']
+        accepted=messagebox.askyesno('Guest setup',prompt,parent=self)
+        self.activity_state='running'
+        self.activity_progress.start(80)
+        answer.put(accepted)
 
     # ワーカー例外はGUIへ返し、完了通知と失敗通知を区別する。
     def work(self,action,kind):
         self.busy=True
+        self.activity_state='running'
+        if self.page == 6:
+            self.activity_progress.start(80)
         def run():
             try:
                 self.events.put((kind,action()))
@@ -204,10 +241,20 @@ class Setup(SetupWizard):
         try:
             while True:
                 kind,value=self.events.get_nowait()
-                if kind=='log':
+                if kind=='manual_action':
+                    self.show_manual_setup(*value)
+                elif kind=='log':
                     self.log.configure(state='normal');self.log.insert('end',str(value)+'\n');self.log.see('end');self.log.configure(state='disabled')
+                    phases=('prepared','common','dynamic','static','verified','complete')
+                    if str(value).endswith(': complete') and str(value).split(':')[0] in phases:
+                        self.completed_phases=phases.index(str(value).split(':')[0])+1
+                        self.phase_progress.configure(value=self.completed_phases)
                 else:
                     self.busy=False
+                    self.activity_state='error' if kind=='error' else 'complete'
+                    if self.page == 6:
+                        self.activity_progress.stop()
+                        self.activity_label.configure(text=self.tr('エラーで停止しました' if kind=='error' else '完了しました', 'Stopped with an error' if kind=='error' else 'Completed'))
                     if kind=='inventory':
                         for name,record in value['tools'].items():
                             self.guest[name][0].set(record['exists'])
@@ -224,6 +271,10 @@ class Setup(SetupWizard):
                         messagebox.showinfo('Setup',self.tr('構築と検証が完了しました。','Setup and verification completed.'),parent=self)
         except queue.Empty:
             pass
+        if self.busy and self.page == 6 and self.activity_state=='running':
+            self.activity_tick += 1
+            dots='.'*((self.activity_tick//5)%4)
+            self.activity_label.configure(text=self.tr('セットアップ中','Setting up')+dots+self.tr('  完了工程 ', '  Completed phases ')+str(self.completed_phases)+'/6')
         self.after(100,self.poll)
 
     # 構築中のGUI破棄でGuest処理を孤立させない。
