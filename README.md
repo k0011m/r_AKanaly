@@ -22,6 +22,8 @@ Hostはr_AKanalyを起動する利用者のPC、GuestはVM内のWindowsです。
 
 ## 必要な環境
 
+**解析用Guest OSはWindows 11 25H2を推奨します。**
+
 - Windows x64のPC。本配布はx86・ARM向けではありません。
 - VMware Workstationとvmrun。
 - Windows x64の解析専用VM（`.vmx`）と、Guest内にインストール済みのVMware Tools。
