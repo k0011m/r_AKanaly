@@ -4,8 +4,6 @@
 
 ### 変更内容
 
-- READMEとSetupの最初の画面に、解析用Guest OSとしてWindows 11 25H2を推奨する案内を追加しました。
-
 - SetupでGuest保護の設定方法を選択できます。手動レジストリ設定（推奨）では、途中に対象Guestの操作と再起動の案内を表示し、操作後に保護の実状態を確認します。公式APIによる設定・確認も選択できます。
 - 手動操作の待機・再開に対応し、セットアップ中のアニメーションと工程の進捗バーを追加しました。
 - REG_DWORDと既存REG_QWORDの読取りに対応しました。OSが64ビットでもQWORDが必要という意味ではありません。新規作成にはREG_DWORDを使用してください。型や値だけで保護の無効化を判断せず、手動方式では再起動後・検体投入前の実状態を確認します。
@@ -26,8 +24,6 @@ Windows x64 Host、VMware Workstation、VMware Tools導入済みWindows x64 Gues
 ## English
 
 ### Changes
-
-- README and the initial Setup screen recommend Windows 11 25H2 for the analysis Guest OS.
 
 - Setup now offers manual Guest registry setup (recommended) or configuration and verification through official APIs. Manual setup guides you through Guest-only changes and a restart, then verifies effective protection state.
 - Added manual-action pause/resume support, an activity animation, and phase progress.

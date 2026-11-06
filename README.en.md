@@ -22,8 +22,6 @@ The Host is the user's PC running r_AKanaly; the Guest is Windows inside the VM.
 
 ## Requirements
 
-**Windows 11 25H2 is recommended for the analysis Guest OS.**
-
 - A Windows x64 PC. This distribution does not target x86 or ARM.
 - VMware Workstation and vmrun.
 - A dedicated Windows x64 analysis VM (`.vmx`) with VMware Tools installed and working inside the Guest.

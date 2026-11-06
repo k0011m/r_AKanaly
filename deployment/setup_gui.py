@@ -56,8 +56,6 @@ class Setup(SetupWizard):
         super().render()
         banner = self.winfo_children()[0]
         banner.configure(text=self.tr('環境セットアップ：最終確認後にHostと選択VMを変更します。', 'Environment setup: Host and selected VM are modified after final confirmation.'))
-        if self.page == 0:
-            ttk.Label(self.body,text=self.tr('解析用Guest OSはWindows 11 25H2を推奨します。','Windows 11 25H2 is recommended for the analysis Guest OS.'),wraplength=1000).pack(anchor='w',pady=18)
         if self.page == 1:
             ttk.Button(self.body, text=self.tr('署名済み配布フォルダを選択', 'Select signed release folder'), command=self.choose_package).pack(anchor='w', pady=14)
             ttk.Label(self.body, text=str(self.package or self.tr('Setup.exeと同じ場所のreleaseフォルダを既定利用', 'Default: release folder beside Setup.exe')), wraplength=1000).pack(anchor='w')
