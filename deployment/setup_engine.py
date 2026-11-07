@@ -15,6 +15,7 @@ from .storage import atomic_json, digest, installation_lock
 from .vm import VMware, REMOTE, quote
 from .payload import HOOK_FILES, require_files
 from . import external_tools, guest_downloads
+from vmrun_errors import VmrunError
 
 
 # 通信障害や構文エラーを保護設定の再試行と混同しないための構造化例外。
@@ -188,13 +189,15 @@ class SetupEngine:
     def verify_with_repair(self, check, source, rebuild=None):
         pending = getattr(self, 'state', {}).get('registry_recovery', {}).get(source)
         resuming = bool(pending and pending.get('status') == 'waiting_for_user')
+        diagnostic = {}
         if not resuming:
             try:
                 check()
                 return
-            except ProtectionVerificationError:
+            except ProtectionVerificationError as error:
                 if self.plan.get('registry_profile') != 'manual_registry':
                     raise
+                diagnostic = {'message': str(error), 'security': error.security}
         if self.request_action is None:
             raise RuntimeError('Manual Guest repair required; open Setup GUI. Guest preserved.')
         if self.vm.snapshots().count(source) != 1:
@@ -206,7 +209,8 @@ class SetupEngine:
         else:
             failed = 'r_AKanaly_failed_' + uuid.uuid4().hex
             recovery = {'source_snapshot': source, 'failed_snapshot': failed,
-                        'phase': self.state['completed'], 'status': 'preparing_manual'}
+                        'phase': self.state['completed'], 'status': 'preparing_manual',
+                        'diagnostic': diagnostic}
             self.state.setdefault('registry_recovery', {})[source] = recovery
             atomic_json(self.state_file, self.state)
             self.save_snapshot(failed)
@@ -217,7 +221,10 @@ class SetupEngine:
             recovery['status'] = 'waiting_for_user'
             atomic_json(self.state_file, self.state)
             if not self.request_action({'kind': 'manual_registry_recovery', 'vmx': self.vm.vmx,
-                                        'source_snapshot': source, 'failed_snapshot': failed}):
+                                        'source_snapshot': source, 'failed_snapshot': failed,
+                                        'original_vmx': self.state.get('source_vmx', self.plan.get('vmx', '')),
+                                        'original_snapshot': self.state.get('source_snapshot', self.plan.get('base_snapshot', '')),
+                                        'diagnostic': recovery.get('diagnostic', {})}):
                 raise RuntimeError('Manual repair paused; Guest preserved; source: ' + source)
             # ユーザーが再起動・確認・シャットダウンを終えるまで電源操作をしない。
             if self.vm.running():
@@ -227,6 +234,8 @@ class SetupEngine:
             try:
                 self.verify_manual_baseline()
             except ProtectionVerificationError as error:
+                # 再確認で変わった状態も保存し、再開時に古い原因を案内しない。
+                recovery['diagnostic'] = {'message': str(error), 'security': error.security}
                 self.report(str(error))
                 continue
             # 起動後の実状態を検証してから正常停止し、停止状態を保存する。
@@ -273,6 +282,59 @@ class SetupEngine:
             name = clones[name]
         return name
 
+    # 自動クローン失敗時だけ手動作成を案内し、元VMへ切り替えて続行しない。
+    def create_working_clone(self, destination):
+        destination = Path(destination).resolve()
+        attempt = self.state.get('clone_attempt')
+        if attempt:
+            if attempt['destination'] != str(destination) or attempt['source'] != self.vm.vmx or attempt['snapshot'] != self.plan['base_snapshot']:
+                raise RuntimeError('Clone attempt differs from the original setup inputs')
+        else:
+            if destination.exists():
+                raise ValueError('Clone destination already exists; no files were overwritten')
+            attempt = {'destination': str(destination), 'source': self.vm.vmx,
+                       'snapshot': self.plan['base_snapshot'], 'status': 'automatic'}
+            self.state['clone_attempt'] = attempt
+            atomic_json(self.state_file, self.state)
+        if attempt['status'] == 'automatic':
+            try:
+                self.vm.clone_from_snapshot(destination, self.plan['base_snapshot'])
+                attempt['status'] = 'created'
+                atomic_json(self.state_file, self.state)
+                return
+            except VmrunError as error:
+                attempt.update(status='manual', error=str(error))
+                atomic_json(self.state_file, self.state)
+                self.report('Automatic full clone failed; manual VMware clone required. Original VM preserved.')
+        if self.request_action is None:
+            raise RuntimeError('Manual full clone required; open Setup GUI. Original VM preserved.')
+        while True:
+            if not self.request_action({'kind': 'manual_vm_clone', 'vmx': self.vm.vmx,
+                                        'source_snapshot': self.plan['base_snapshot'], 'destination': str(destination),
+                                        'error': attempt.get('error', '')}):
+                raise RuntimeError('Manual clone paused; original VM preserved')
+            try:
+                if self.vm.running():
+                    raise ValueError('Original VM must remain powered off')
+                clone = self.vm_factory(self.plan['vmrun'], str(destination), self.plan['username'],
+                                        self.secret['guest_password'], self.secret.get('vm_password', ''))
+                if clone.running():
+                    raise ValueError('Shut down the new clone before continuing')
+                from .clone_validation import verify_full_clone
+                result = verify_full_clone(self.vm.vmx, destination)
+                # クローン用認証と保存点一覧を読み取り、読めないVMを構築対象にしない。
+                if clone.snapshots():
+                    raise ValueError('A newly created full clone without existing snapshots is required')
+                atomic_json(self.root / 'setup-reports' / 'manual-clone.json', result)
+            except (ValueError, RuntimeError, OSError) as error:
+                attempt.update(status='manual', error=str(error))
+                atomic_json(self.state_file, self.state)
+                self.report('Manual clone verification failed: ' + str(error))
+                continue
+            attempt['status'] = 'created'
+            atomic_json(self.state_file, self.state)
+            return
+
     # 登録済み保存点から検証できた状態だけを通常解析へ公開する。
     def apply(self, locked=False):
         self.root.mkdir(parents=True, exist_ok=True)
@@ -306,10 +368,11 @@ class SetupEngine:
                     raise ValueError('Prepared baseline snapshot must exist uniquely in selected VM')
                 if manual:
                     # 手動方式では「既存VMを使用」の入力でも元VMを変更せず完全クローンを使用する。
-                    destination = (Path(self.plan['clone_path']) if self.plan['mode'] == 'copy'
-                                   else self.root / 'vm' / uuid.uuid4().hex / 'r_AKanaly.vmx')
+                    destination = (Path(self.state['clone_attempt']['destination']) if self.state.get('clone_attempt') else
+                                   (Path(self.plan['clone_path']) if self.plan['mode'] == 'copy'
+                                    else self.root / 'vm' / uuid.uuid4().hex / 'r_AKanaly.vmx'))
                     self.report('Creating full VM clone from selected snapshot; original VM will not be modified')
-                    self.vm.clone_from_snapshot(destination, self.plan['base_snapshot'])
+                    self.create_working_clone(destination)
                     self.state['source_vmx'] = self.vm.vmx
                     self.state['source_snapshot'] = self.plan['base_snapshot']
                     self.vm.vmx = str(destination.resolve())

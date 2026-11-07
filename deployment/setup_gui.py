@@ -82,10 +82,11 @@ class Setup(SetupWizard):
         if self.page == 4:
             for widget in self.body.winfo_children():
                 widget.destroy()
-            ttk.Label(self.body, text=self.tr('Guestで検出した結果です。Pythonの専用環境は依存関係も検証します。', 'Actual Guest inventory. Private Python dependencies are verified during setup.')).pack(anchor='w')
+            manual = self.registry_profile.get() == 'manual_registry'
+            ttk.Label(self.body, text=self.tr('手動方式では元VMを起動して調査しません。既存ツールを再利用する場合だけ指定してください。配置時にクローン内で検証します。' if manual else 'Guestで検出した結果です。Pythonの専用環境は依存関係も検証します。', 'Manual mode does not start the original VM for inspection. Specify existing tools only if you want to reuse them; they are verified in the clone during provisioning.' if manual else 'Actual Guest inventory. Private Python dependencies are verified during setup.'), wraplength=1000).pack(anchor='w')
             self.tool_table(self.guest, guest=True)
             for name, status in self.status.items():
-                status.configure(text=self.tr('Guest検出済み' if self.guest[name][0].get() else '未検出', 'Detected in Guest' if self.guest[name][0].get() else 'Not found'))
+                status.configure(text=self.tr('利用者指定・配置時に検証' if manual else ('Guest検出済み' if self.guest[name][0].get() else '未検出'), 'User specified; verified during provisioning' if manual else ('Detected in Guest' if self.guest[name][0].get() else 'Not found')))
         if self.page == 5:
             text = self.body.winfo_children()[0]
             text.configure(state='normal')
@@ -136,10 +137,18 @@ class Setup(SetupWizard):
     # Guest承認が必要な場合だけユーザー操作でVMwareコンソールを表示する。
     def open_console(self):
         vmx=self.env['vmx_path'].get()
-        if self.env['vm_mode'].get()=='copy':
+        if self.registry_profile.get() == 'manual_registry':
+            engine = getattr(self, 'setup_engine', None)
+            state = getattr(engine, 'state', {}) if engine else {}
+            vmx = state.get('vmx', '')
+            if not state.get('owned_full_clone') or not vmx or Path(vmx).resolve() == Path(self.env['vmx_path'].get()).resolve():
+                messagebox.showinfo('Setup', self.tr('作業用クローンの準備が完了していません。元VMは開きません。', 'The working clone is not ready. The original VM will not be opened.'), parent=self)
+                return
+        elif self.env['vm_mode'].get()=='copy':
             clone=Path(self.env['clone_path'].get())
             vmx=str(clone if clone.suffix.lower()=='.vmx' else clone/Path(vmx).name)
-        subprocess.Popen([self.host['VMware Workstation'][1].get(),'-x',vmx])
+        # コンソール表示だけでは電源を入れず、構築中の停止・再起動と競合させない。
+        subprocess.Popen([self.host['VMware Workstation'][1].get(),vmx])
 
     # パッケージ選択だけでは実配置しない。
     def choose_package(self):
@@ -187,6 +196,8 @@ class Setup(SetupWizard):
             super().next_page()
             if self.page != 4:
                 return
+            if self.registry_profile.get() == 'manual_registry':
+                return
             plan,secret=self.inputs()
             paths={k:v[1].get() for k,v in self.guest.items()}
             self.work(lambda: self.inspect(plan,secret,paths),'inventory')
@@ -212,6 +223,8 @@ class Setup(SetupWizard):
 
     # Guestを調査するための起動は行うが、保存点の復元や設定変更はしない。
     def inspect(self,plan,secret,paths):
+        if plan.get('registry_profile') == 'manual_registry':
+            raise RuntimeError('Manual setup must not inspect the original Guest; tools are verified in the clone')
         vm=VMware(plan['vmrun'],plan['vmx'],plan['username'],secret['guest_password'],secret['vm_password'])
         started=not vm.running()
         vm.boot()
@@ -243,7 +256,8 @@ class Setup(SetupWizard):
                 if source.resolve() != (root/name).resolve():
                     shutil.copy2(source,root/name)
             atomic_json(root/'update.json',dict(trust,check_on_start=False))
-        SetupEngine(plan,secret,manifest,report=lambda msg:self.events.put(('log',msg)),request_action=self.wait_for_manual_setup).apply()
+        self.setup_engine = SetupEngine(plan,secret,manifest,report=lambda msg:self.events.put(('log',msg)),request_action=self.wait_for_manual_setup)
+        self.setup_engine.apply()
 
     # ワーカーを待機させ、Tk操作とユーザーの回答はGUIスレッドへ渡す。
     def wait_for_manual_setup(self, details):
@@ -253,25 +267,102 @@ class Setup(SetupWizard):
 
     # 初期選択と復旧案内で、手動編集の場所・対象を同じ説明に統一する。
     def manual_registry_instructions(self):
-        return self.tr(
+        preparation = self.tr(
+            '【先に解析専用Guestの改ざん防止を確認してください】\nGuestのWindows セキュリティ→ウイルスと脅威の防止→設定の管理で、改ざん防止をOFFにしてから、以下の設定を行ってください。Hostでは操作しないでください。Setupは改ざん防止を自動操作しません。OFFにしてもWindowsの構成によっては値が適用されません。DWORD→QWORD→DWORDの切替は不要です。\n\n',
+            '[First check Tamper Protection in the analysis Guest]\nIn the Guest, open Windows Security > Virus & threat protection > Manage settings and turn Tamper Protection OFF before the steps below. Do not do this on the Host. Setup does not toggle Tamper Protection automatically. Depending on Windows configuration, the value may still not take effect. Do not cycle DWORD > QWORD > DWORD.\n\n')
+        return preparation + self.tr(
             '【変更するのはPolicies側のDisableAntiSpywareだけです】\n対象Guest内でWin+Rを押し、regeditと入力して起動してください。上部のアドレス欄に次のパスを貼り付け、Enterを押してください。\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\n右側の一覧でDisableAntiSpywareを開き、値のデータを1にしてください。存在しない場合は右側の空白部分を右クリック→新規→DWORD（32ビット）値で作成し、名前をDisableAntiSpyware、値を1にしてください。\nPoliciesを含まない同名の場所は変更しないでください。DisableAntiVirusや他の値・キー・アクセス許可は作成・変更・削除しないでください。Host側でも操作しないでください。対象キーが見つからない場合は別の場所を代用せず、パスを確認してください。',
             '[Change only DisableAntiSpyware under Policies]\nInside the selected Guest, press Win+R, enter regedit, and open Registry Editor. Paste this path into its top address bar and press Enter:\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\nOpen DisableAntiSpyware in the right pane and set Value data to 1. If it is absent, right-click an empty area in the right pane, choose New > DWORD (32-bit) Value, name it DisableAntiSpyware, and set it to 1.\nDo not edit the similarly named location without Policies. Do not create, change, or delete DisableAntiVirus, other values or keys, or permissions. Do not perform these steps on the Host. If the target key is missing, check the path instead of substituting another location.')
+
+    # 失敗時の観測値と操作対象を分け、値が1でも実状態の検証失敗であることを伝える。
+    def manual_recovery_prompt(self, details):
+        diagnostic = details.get('diagnostic') or {}
+        security = diagnostic.get('security') or {}
+        state = security.get('after') or {}
+        lines = [self.tr('直近の失敗時の観測値（現在の画面とは異なる場合があります）：',
+                         'Observed at the latest failure (may differ from the current screen):')]
+        for entry in security.get('registry_checks') or []:
+            lines.append(str(entry.get('path', '?')) + ': ' + str(entry.get('kind')) + ' / ' + str(entry.get('value'))
+                         + ' / read_success=' + str(entry.get('read_success')))
+        for key in ('AMRunningMode', 'RealTimeProtectionEnabled', 'BehaviorMonitorEnabled', 'IoavProtectionEnabled', 'IsTamperProtected'):
+            lines.append(key + ': ' + (str(state[key]) if key in state else self.tr('未取得', 'Unavailable')))
+        reason = security.get('error') or diagnostic.get('message') or self.tr('旧進捗に詳細記録がありません', 'No diagnostic detail in legacy progress')
+        lines.append(self.tr('失敗理由：', 'Failure reason: ') + str(reason))
+        return self.tr(
+            '値が1でも、保護の実状態がON・取得不能の場合は検証に失敗します。以下の観測値を確認してください。\n\n',
+            'A value of 1 does not pass verification if effective protection is ON or unavailable. Check the observations below.\n\n') + '\n'.join(lines) + self.tr(
+            '\n\n【操作するのは作業用クローンVMです】\n元VM・元保存点を移動・削除・上書きする操作は不要です。設定を確認・修正してWindowsを再起動し、状態確認後にGuestをシャットダウンしてください。\n「はい」：Setupがこのクローンを起動して読取り検証し、成功したら正常停止して別名の新しい保存点を作り、以降の構築先をその保存点へ切り替えます。元の保存点は保持します。\n「いいえ」：作業中のGuest状態を保持して中断します。\n\n作業用クローンVM：',
+            '\n\n[Work only in the working clone VM]\nDo not move, delete, or overwrite the original VM or snapshots. Check/correct the settings, restart Windows, verify the state, then shut down the Guest.\nYes: Setup boots this clone for read-only verification; on success it shuts down normally, creates a new snapshot with a different name, and uses it for subsequent provisioning. Existing snapshots are preserved.\nNo: Pause while preserving the current Guest state.\n\nWorking clone VM: ') + details['vmx'] + self.tr(
+            '\nクローン内の復元元保存点（保持）：', '\nRestore point within the clone (preserved): ') + details['source_snapshot'] + self.tr(
+            '\n元VM（変更しません）：', '\nOriginal VM (unchanged): ') + details.get('original_vmx', '') + self.tr(
+            '\n最初に選択した元保存点（変更しません）：', '\nOriginally selected snapshot (unchanged): ') + details.get('original_snapshot', '')
 
     # 手動変更中は進捗を止め、再確認するまで同じVMを保持する。
     def show_manual_setup(self, details, answer):
         self.activity_state='waiting'
         self.activity_progress.stop()
+        if details.get('kind') == 'manual_vm_clone':
+            self.activity_label.configure(text=self.tr('VMwareでの完全クローン作成待ち', 'Waiting for a full clone in VMware'))
+            prompt = self.tr(
+                '自動クローンに失敗しました。元VMは変更せず、次の手順で作業用VMを作成してください。\n\n1. VMwareで下記の元VMを開いてください。電源はOFFのままにしてください。\n2. 仮想マシン→管理→クローンを開き、「既存のスナップショット」から下記の保存点を選んでください。「現在の状態」は選ばないでください。\n3. 「完全なクローン」を選んでください。リンククローンは使用できません。\n4. 保存先フォルダとVM名を下記どおりに指定し、作成完了まで待ってください。元VMの移動・削除や暗号化解除は不要です。クローンは起動しないでください。\n5. 「はい」で確認します。Setupは指定先・停止状態・ディスクの独立性を検証してから、クローン内だけを構築します。\n「いいえ」は中断します。\n\n元VM：',
+                'Automatic cloning failed. Preserve the original VM and create a working VM as follows.\n\n1. Open the original VM below in VMware; keep it powered off.\n2. Open VM > Manage > Clone. Select Existing snapshot and choose the snapshot below. Do not select Current state.\n3. Select Full clone, not Linked clone.\n4. Use exactly the destination folder and VM name below, then wait for cloning to finish. Do not move, delete, or decrypt the original VM. Do not start the clone.\n5. Select Yes. Setup verifies the destination, powered-off state, and independent disk references before provisioning only the clone.\nNo pauses setup.\n\nOriginal VM: ') + details['vmx'] + self.tr(
+                    '\n選択する保存点：', '\nSnapshot to select: ') + details['source_snapshot'] + self.tr(
+                    '\n新VM名：', '\nNew VM name: ') + Path(details['destination']).stem + self.tr(
+                    '\n保存先フォルダ：', '\nDestination folder: ') + str(Path(details['destination']).parent) + self.tr(
+                    '\n確認するVMX：', '\nExpected VMX: ') + details['destination'] + self.tr(
+                    '\n\nエラー詳細：', '\n\nError detail: ') + details.get('error', '')
+            accepted = self.ask_manual_setup(prompt, open_guest=False)
+            self.activity_state='running'
+            self.activity_progress.start(80)
+            answer.put(accepted)
+            return
         self.activity_label.configure(text=self.tr('Guestの手動設定・再起動待ち','Waiting for manual Guest setup and restart'))
         prompt=self.tr('対象Guestのレジストリエディターで設定を変更し、Windowsを再起動してください。Hostは変更しないでください。\n\nキー：HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\n値：DisableAntiSpyware / 1\n型：REG_DWORD（32ビット）または既存のREG_QWORD（64ビット）を読み取ります。OSが64ビットでもQWORDを選ぶ必要はありません。新規作成はREG_DWORDを使用してください。既存のQWORDは型だけでは拒否しませんが、Windowsへの反映を保証するものではありません。\n\n再起動とログインが完了したら「はい」で実状態を確認します。設定値だけでは成功にしません。「いいえ」はGuest状態を保持して中断します。\n\n対象VM：', 'Edit the registry in the selected Guest and restart Windows. Do not modify the Host.\n\nKey: HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\nValue: DisableAntiSpyware / 1\nType: REG_DWORD (32-bit) or an existing REG_QWORD (64-bit) can be read. A 64-bit OS does not require QWORD. Please use REG_DWORD for new values. Existing QWORD values are not rejected solely for their type, but their effect on Windows is not guaranteed.\n\nAfter restart and logon, choose Yes to verify effective state. The registry value alone does not establish success. No pauses setup and preserves Guest state.\n\nTarget VM: ')+details['vmx']
         if details.get('kind') == 'manual_registry_recovery':
-            prompt=self.tr(
-                '対象Guestで手動のレジストリ修正を行ってください。Setupは値を書き換えません。\n\nキー：HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\n値：DisableAntiSpyware / 1\n\nWindowsを再起動し、値と保護の状態を確認した後、Guestをシャットダウンしてください。電源が切れたら「はい」を押してください。Setupが再起動して読取り確認し、正常停止後にクローンVM内で新しい保存点を作ります。既存保存点は削除・上書きしません。\n「いいえ」は現在のGuestを保持して中断します。\n\n元の保存点（保持します）：',
-                'Please manually correct the registry in the selected Guest. Setup will not write the value.\n\nKey: HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\nValue: DisableAntiSpyware / 1\n\nRestart Windows, verify the value and protection state, then shut down the Guest. Choose Yes after power-off. Setup will boot for read-only verification, shut down normally, and create a new snapshot in the cloned VM. Existing snapshots are never deleted or overwritten.\nNo pauses setup and preserves the Guest.\n\nSource snapshot (preserved): ')+details['source_snapshot']+'\nVM: '+details['vmx']
-        prompt=self.manual_registry_instructions()+'\n\n'+prompt
-        accepted=messagebox.askyesno('Guest setup',prompt,parent=self)
+            prompt=self.manual_recovery_prompt(details)
+        prompt=prompt+'\n\n'+self.manual_registry_instructions()
+        accepted=self.ask_manual_setup(prompt)
         self.activity_state='running'
         self.activity_progress.start(80)
         answer.put(accepted)
+
+    # 長い診断を画面外へはみ出させず、操作ボタンを常に表示する。
+    def ask_manual_setup(self, prompt, open_guest=True):
+        dialog = tk.Toplevel(self)
+        dialog.title(self.tr('Guestの手動確認', 'Manual Guest verification'))
+        width = min(960, max(480, self.winfo_screenwidth() - 80))
+        height = min(760, max(400, self.winfo_screenheight() - 100))
+        dialog.geometry(f'{width}x{height}')
+        dialog.transient(self)
+        frame = ttk.Frame(dialog, padding=12)
+        frame.pack(fill='both', expand=True)
+        buttons = ttk.Frame(frame)
+        buttons.pack(side='bottom', fill='x', pady=(12, 0))
+        body = ttk.Frame(frame)
+        body.pack(fill='both', expand=True)
+        text = tk.Text(body, wrap='word', font=('Segoe UI', 11))
+        scroll = ttk.Scrollbar(body, orient='vertical', command=text.yview)
+        text.configure(yscrollcommand=scroll.set)
+        scroll.pack(side='right', fill='y')
+        text.pack(side='left', fill='both', expand=True)
+        text.insert('1.0', prompt)
+        text.configure(state='disabled')
+        accepted = False
+
+        # 完了の明示操作だけを再確認開始として扱い、閉じる操作は中断する。
+        def finish(value):
+            nonlocal accepted
+            accepted = value
+            dialog.destroy()
+
+        ttk.Button(buttons, text=self.tr('はい：操作完了・再確認', 'Yes: finished, verify again'), command=lambda: finish(True)).pack(side='right', padx=8)
+        ttk.Button(buttons, text=self.tr('いいえ：状態を保持して中断', 'No: preserve state and pause'), command=lambda: finish(False)).pack(side='right')
+        if open_guest:
+            ttk.Button(buttons, text=self.tr('作業用Guestを開く', 'Open working Guest'), command=self.open_console).pack(side='left')
+        dialog.protocol('WM_DELETE_WINDOW', lambda: finish(False))
+        dialog.grab_set()
+        self.wait_window(dialog)
+        return accepted
 
     # ワーカー例外はGUIへ返し、完了通知と失敗通知を区別する。
     def work(self,action,kind):
@@ -347,6 +438,9 @@ class Setup(SetupWizard):
     # Hostの選択画面と混同せず、Guest Operationsで取得した一覧から選ぶ。
     def guest_browse(self,var=None):
         if self.busy or var is None:
+            return
+        if self.registry_profile.get() == 'manual_registry':
+            messagebox.showinfo('Setup', self.tr('元VMを起動しないため、手動方式の構築前はGuest参照を行いません。再利用するツールのパスを入力してください。クローンへの配置時に検証します。', 'To preserve the original VM, Guest browsing is unavailable before manual-mode provisioning. Enter any tool paths to reuse; they will be verified in the clone.'), parent=self)
             return
         from pathlib import PureWindowsPath
         plan,secret=self.inputs()

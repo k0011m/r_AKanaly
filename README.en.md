@@ -9,7 +9,7 @@
 
 A Windows application that coordinates sample analysis and saves HTML reports and analysis results.
 
-**Version: 0.1.5**
+**Version: 0.1.6**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
 ## What is r_AKanaly?
@@ -38,20 +38,18 @@ Setup configures Guest automatic login, power settings, analysis-specific protec
 
 Please select manual registry setup (recommended) or configuration and verification through official APIs after startup. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
 
-Setup restores and boots that baseline and verifies the registry value and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot, rather than older analysis snapshots. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
+In manual mode, Setup creates a full clone from that baseline, boots the clone, and verifies the registry value and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot, rather than older analysis snapshots. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
 
-### Recommended troubleshooting when the value disappears
+### Checks before manual setup
 
-In **the selected Guest only**, first set `DisableAntiSpyware` under `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender` to REG_DWORD `1` and restart. If the value disappears, please try the following:
+1. **Inside the dedicated analysis Guest only**, open Windows Security > Virus & threat protection > Manage settings and turn Tamper Protection OFF. Do not do this on the Host.
+2. Follow the next section to set `DisableAntiSpyware` under Policies to REG_DWORD `1`. Do not cycle DWORD > QWORD > DWORD.
+3. Restart the Guest and check that the value persists and effective protection is OFF.
+4. Shut down the Guest, create a baseline snapshot, and select it in Setup.
 
-1. Create a REG_QWORD value with the same name, set it to `1`, and restart.
-2. Confirm the QWORD persists, then delete that value.
-3. Recreate the same name as REG_DWORD `1` and restart.
-4. Confirm that the DWORD persists and effective protection is OFF, then shut down the Guest and create the baseline snapshot.
+Tamper Protection can block protection changes through the registry. Turning it OFF does not guarantee that `DisableAntiSpyware` takes effect on every Windows/Defender configuration. Please see [Microsoft's explanation](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/security-malware-windows-defender-disableantispyware). In manual mode, Setup performs read-only verification and does not toggle Tamper Protection or rewrite registry values. Use REG_DWORD for new values even on 64-bit Windows. Existing REG_QWORD values can be read, but neither type nor value alone establishes success.
 
-This sequence was reproduced twice in a user's analysis VM; neither success on every system nor the causal effect of the intermediate QWORD is established. Please do not perform it on the Host. The final value is REG_DWORD even on 64-bit Windows. Setup can also read existing REG_QWORD values, but verifies effective protection after restart and before analysis rather than accepting a value of 1 alone.
-
-If protection verification fails during manual-mode setup, follow the dialog to correct the Guest settings, restart and verify Windows, then shut down the Guest. Setup does not automatically rewrite registry values for this repair. It verifies the resulting state, creates a new snapshot in the cloned VM without deleting or overwriting existing snapshots.
+On verification failure, the dialog shows the registry values, protection state, and failure reason observed at the failure. A value of `1` does not pass if protection is ON or unavailable. Make manual corrections in the displayed **working clone VM**. You do not need to move the original VM or snapshots. After correcting, restarting, verifying, and shutting down the Guest, select Yes. Setup boots the clone for verification and, on success, saves its stopped state to a new snapshot with a different name before continuing. Existing snapshots are preserved. No pauses setup while preserving current Guest state.
 
 Successful setup registers the installation directory in the user environment variable `R_AKANALY_HOME` and user PATH. Please reopen your terminal. Settings are still selected through `current.json`; arbitrary environment variables in JSON are not automatically expanded.
 
@@ -59,17 +57,19 @@ Successful setup registers the installation directory in the user environment va
 
 **Change only `DisableAntiSpyware` under Policies in the selected Guest.**
 
-1. Inside the Guest, press `Win+R`, enter `regedit`, and open Registry Editor.
+1. After checking Tamper Protection as described above, inside the Guest, press `Win+R`, enter `regedit`, and open Registry Editor.
 2. Paste `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender` into the top address bar and press Enter.
 3. Open `DisableAntiSpyware` in the right pane and set Value data to `1`. If it is absent, right-click an empty area in the right pane, choose New > DWORD (32-bit) Value, name it `DisableAntiSpyware`, and set it to `1`.
 
 **Do not create, change, or delete the similarly named location without Policies, `DisableAntiVirus`, other values or keys, or permissions. Do not perform these steps on the Host.** If the target key is missing, check the entered path instead of substituting another location. Follow Setup instructions for restarting, verifying, and shutting down the Guest.
 
-**In manual mode, v0.1.5 creates an independent full VM clone from the selected snapshot and provisions only that clone. The original VM and snapshots are preserved.** This also applies when selecting an existing VM. Allow disk space and time for a full copy. Do not rerun a failed v0.1.3/v0.1.4 Setup; use this version with a new installation directory. Legacy progress targeting the original VM is rejected without modifying it.
+**In manual mode, v0.1.5 and later create an independent full VM clone from the selected snapshot and provision only that clone. The original VM and snapshots are preserved.** This also applies when selecting an existing VM. Allow disk space and time for a full copy. Do not rerun a failed v0.1.3/v0.1.4 Setup; use this version with a new installation directory. Legacy progress targeting the original VM is rejected without modifying it.
+
+If automatic cloning fails, please follow the Setup dialog to create a **full clone** in VMware from the specified snapshot at the specified destination. Do not use a linked clone. Once cloning finishes, keep the clone powered off and select Yes in Setup. Setup verifies independent disk references before continuing. You do not need to move or delete snapshots in the original VM.
 
 ## Installation
 
-Please download `r_AKanaly-0.1.5-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
+Please download `r_AKanaly-0.1.6-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
 
 1. Open `Setup.exe` and select Japanese or English.
 2. Choose the application installation directory and the results directory.
@@ -294,7 +294,7 @@ This example records the dynamic-analysis screen every 10 seconds. `{analysis_di
 | `llm.codex_project_dir` | Codex's analysis workspace, not the report destination. Changing it may require reviewing Hook approval for the new workspace. |
 | `codex_malware_guard` | Host operation restrictions; not a setting to change when switching samples. |
 
-Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.5 operation.
+Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.6 operation.
 
 ### Please save and check the configuration before running
 

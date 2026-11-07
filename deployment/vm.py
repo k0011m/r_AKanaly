@@ -20,7 +20,10 @@ class VMware:
     # 元VMを復元・起動せず、指定保存点から独立した完全クローンを作る。
     def clone_from_snapshot(self, destination, snapshot):
         destination = Path(destination).resolve()
-        if destination.exists() or destination.parent.is_relative_to(Path(self.vmx).resolve().parent):
+        source_dir = Path(self.vmx).resolve().parent
+        if (destination.exists() or destination.parent.is_relative_to(source_dir)
+                or source_dir.is_relative_to(destination.parent)
+                or (destination.parent.exists() and any(destination.parent.iterdir()))):
             raise ValueError('Clone destination must be new and outside the source VM directory')
         if self.running() or self.snapshots().count(snapshot) != 1:
             raise RuntimeError('Clone requires a stopped source VM and a unique snapshot')

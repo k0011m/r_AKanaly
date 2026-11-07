@@ -88,7 +88,7 @@ class SetupWizard(tk.Tk):
     def render(self):
         for widget in self.winfo_children():
             widget.destroy()
-        ttk.Label(self, text=self.tr("環境セットアップ：最終確認後にHostと選択VMを変更します。", "Environment setup: Host and selected VM are modified after final confirmation."), foreground="#a04400").pack(pady=12)
+        ttk.Label(self, text=self.tr("環境セットアップ：手動方式では作業用クローンを構築します。最終確認後に開始します。", "Environment setup: manual mode provisions a working clone. Setup starts after final confirmation."), foreground="#a04400").pack(pady=12)
         names = [self.tr(a, b) for a, b in [("言語", "Language"), ("保存先", "Locations"), ("Hostツール", "Host tools"), ("個別環境情報", "Environment"), ("Guestツール", "Guest tools"), ("変更内容の確認", "Review"), ("構築状況", "Setup status")]]
         ttk.Label(self, text=f"{self.page + 1}/7   {names[self.page]}", font=("Yu Gothic UI", 21, "bold")).pack(anchor="w", padx=24)
         content = ttk.Frame(self)
