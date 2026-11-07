@@ -70,7 +70,7 @@ class Setup(SetupWizard):
             self.protection_choice.pack(anchor='w')
             self.protection_choice.bind('<<ComboboxSelected>>',self.change_protection_choice)
             self.manual_baseline_panel=ttk.Frame(self.body)
-            ttk.Label(self.manual_baseline_panel,text=self.tr('対象GuestでDisableAntiSpywareを1に設定し、再起動後も値が保持され、Defenderが停止していることを確認してください。その後Guestをシャットダウンしてスナップショットを作成し、下で選択してください。構築前に復元・再確認します。','In the selected Guest, set DisableAntiSpyware to 1 and confirm it persists after restart with Defender stopped. Shut down the Guest, create a snapshot, and select it below. Setup restores and verifies it before provisioning.'),wraplength=1000).pack(anchor='w',pady=10)
+            ttk.Label(self.manual_baseline_panel,text=self.manual_registry_instructions()+'\n\n'+self.tr('対象GuestでDisableAntiSpywareを1に設定し、再起動後も値が保持され、Defenderが停止していることを確認してください。その後Guestをシャットダウンしてスナップショットを作成し、下で選択してください。構築前に復元・再確認します。','In the selected Guest, set DisableAntiSpyware to 1 and confirm it persists after restart with Defender stopped. Shut down the Guest, create a snapshot, and select it below. Setup restores and verifies it before provisioning.'),wraplength=1000).pack(anchor='w',pady=10)
             ttk.Label(self.manual_baseline_panel,text=self.tr('設定済み起点スナップショット（必須）','Prepared baseline snapshot (required)')).pack(anchor='w')
             self.baseline_choice=ttk.Combobox(self.manual_baseline_panel,textvariable=self.env['base_snapshot'],width=65)
             self.baseline_choice.pack(anchor='w',pady=6)
@@ -251,6 +251,12 @@ class Setup(SetupWizard):
         self.events.put(('manual_action',(details,answer)))
         return answer.get()
 
+    # 初期選択と復旧案内で、手動編集の場所・対象を同じ説明に統一する。
+    def manual_registry_instructions(self):
+        return self.tr(
+            '【変更するのはPolicies側のDisableAntiSpywareだけです】\n対象Guest内でWin+Rを押し、regeditと入力して起動してください。上部のアドレス欄に次のパスを貼り付け、Enterを押してください。\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\n右側の一覧でDisableAntiSpywareを開き、値のデータを1にしてください。存在しない場合は右側の空白部分を右クリック→新規→DWORD（32ビット）値で作成し、名前をDisableAntiSpyware、値を1にしてください。\nPoliciesを含まない同名の場所は変更しないでください。DisableAntiVirusや他の値・キー・アクセス許可は作成・変更・削除しないでください。Host側でも操作しないでください。対象キーが見つからない場合は別の場所を代用せず、パスを確認してください。',
+            '[Change only DisableAntiSpyware under Policies]\nInside the selected Guest, press Win+R, enter regedit, and open Registry Editor. Paste this path into its top address bar and press Enter:\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\nOpen DisableAntiSpyware in the right pane and set Value data to 1. If it is absent, right-click an empty area in the right pane, choose New > DWORD (32-bit) Value, name it DisableAntiSpyware, and set it to 1.\nDo not edit the similarly named location without Policies. Do not create, change, or delete DisableAntiVirus, other values or keys, or permissions. Do not perform these steps on the Host. If the target key is missing, check the path instead of substituting another location.')
+
     # 手動変更中は進捗を止め、再確認するまで同じVMを保持する。
     def show_manual_setup(self, details, answer):
         self.activity_state='waiting'
@@ -261,6 +267,7 @@ class Setup(SetupWizard):
             prompt=self.tr(
                 '対象Guestで手動のレジストリ修正を行ってください。Setupは値を書き換えません。\n\nキー：HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\n値：DisableAntiSpyware / 1\n\nWindowsを再起動し、値と保護の状態を確認した後、Guestをシャットダウンしてください。電源が切れたら「はい」を押してください。Setupが再起動して読取り確認し、正常停止後に対象保存点を更新します。\n「いいえ」は現在のGuestを保持して中断します。\n\n更新対象の保存点：',
                 'Please manually correct the registry in the selected Guest. Setup will not write the value.\n\nKey: HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\nValue: DisableAntiSpyware / 1\n\nRestart Windows, verify the value and protection state, then shut down the Guest. Choose Yes after power-off. Setup will boot for read-only verification, shut down normally, and replace the target snapshot.\nNo pauses setup and preserves the Guest.\n\nSnapshot to replace: ')+details['source_snapshot']+'\nVM: '+details['vmx']
+        prompt=self.manual_registry_instructions()+'\n\n'+prompt
         accepted=messagebox.askyesno('Guest setup',prompt,parent=self)
         self.activity_state='running'
         self.activity_progress.start(80)

@@ -9,7 +9,7 @@
 
 A Windows application that coordinates sample analysis and saves HTML reports and analysis results.
 
-**Version: 0.1.3**
+**Version: 0.1.4**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
 ## What is r_AKanaly?
@@ -55,9 +55,19 @@ If protection verification fails during manual-mode setup, follow the dialog to 
 
 Successful setup registers the installation directory in the user environment variable `R_AKANALY_HOME` and user PATH. Please reopen your terminal. Settings are still selected through `current.json`; arbitrary environment variables in JSON are not automatically expanded.
 
+### Where to make the manual change
+
+**Change only `DisableAntiSpyware` under Policies in the selected Guest.**
+
+1. Inside the Guest, press `Win+R`, enter `regedit`, and open Registry Editor.
+2. Paste `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender` into the top address bar and press Enter.
+3. Open `DisableAntiSpyware` in the right pane and set Value data to `1`. If it is absent, right-click an empty area in the right pane, choose New > DWORD (32-bit) Value, name it `DisableAntiSpyware`, and set it to `1`.
+
+**Do not create, change, or delete the similarly named location without Policies, `DisableAntiVirus`, other values or keys, or permissions. Do not perform these steps on the Host.** If the target key is missing, check the entered path instead of substituting another location. Follow Setup instructions for restarting, verifying, and shutting down the Guest.
+
 ## Installation
 
-Please download `r_AKanaly-0.1.3-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
+Please download `r_AKanaly-0.1.4-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
 
 1. Open `Setup.exe` and select Japanese or English.
 2. Choose the application installation directory and the results directory.
@@ -282,7 +292,7 @@ This example records the dynamic-analysis screen every 10 seconds. `{analysis_di
 | `llm.codex_project_dir` | Codex's analysis workspace, not the report destination. Changing it may require reviewing Hook approval for the new workspace. |
 | `codex_malware_guard` | Host operation restrictions; not a setting to change when switching samples. |
 
-Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.3 operation.
+Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.4 operation.
 
 ### Please save and check the configuration before running
 

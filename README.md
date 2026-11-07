@@ -9,7 +9,7 @@
 
 Windows上で検体の解析を進め、HTMLレポートと解析結果を保存するソフトウェアです。
 
-**バージョン：0.1.3**
+**バージョン：0.1.4**
 ダウンロードと、このバージョンの動作確認範囲・制限事項は[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)を確認してください。
 
 ## r_AKanalyとは
@@ -55,9 +55,19 @@ Setupは選択した起点を復元・起動し、設定値と保護の実状態
 
 導入成功時にユーザー環境変数`R_AKANALY_HOME`とユーザーPATHへ導入先を登録します。Terminalを開き直して使用してください。設定ファイルは引き続き`current.json`で選択され、JSON内の任意の環境変数表記を自動展開するものではありません。
 
+### 手動で編集する場所と対象
+
+**変更するのは、対象GuestのPolicies側にある`DisableAntiSpyware`だけです。**
+
+1. Guest内で`Win+R`を押し、`regedit`と入力してレジストリエディターを開いてください。
+2. 上部のアドレス欄に`HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender`を貼り付け、Enterを押してください。
+3. 右側の一覧にある`DisableAntiSpyware`を開き、値のデータを`1`にしてください。存在しない場合は、右側の空白部分を右クリックし、［新規］→［DWORD（32ビット）値］で作成してください。名前は`DisableAntiSpyware`、値は`1`にしてください。
+
+**Policiesを含まない同名の場所、`DisableAntiVirus`、その他の値・キー・アクセス許可は作成・変更・削除しないでください。Host側では操作しないでください。** 対象キーが見つからない場合は別の場所を代用せず、入力したパスを確認してください。設定後の再起動・確認・シャットダウンはSetupの案内に従ってください。
+
 ## インストール
 
-[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.3-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
+[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.4-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
 
 1. `Setup.exe`を開き、日本語または英語を選んでください。
 2. 本体の保存先と、レポートなどの保存先を指定してください。
@@ -282,7 +292,7 @@ EXE入力ではZIP関連項目を使わないため、この`zip_password: null`
 | `llm.codex_project_dir` | Codexの解析用作業場所。レポート保存先ではありません。変更するとHook承認の確認が必要になる場合があります。 |
 | `codex_malware_guard` | Host側の操作制限。検体を替えるために変更する項目ではありません。 |
 
-追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.3の通常運用では`llm.report_format`は`"html"`を維持してください。
+追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.4の通常運用では`llm.report_format`は`"html"`を維持してください。
 
 ### 保存して、実行前に確認してください
 
