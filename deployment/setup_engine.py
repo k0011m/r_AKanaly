@@ -17,6 +17,13 @@ from .payload import HOOK_FILES, require_files
 from . import external_tools, guest_downloads
 
 
+# 通信障害や構文エラーを保護設定の再試行と混同しないための構造化例外。
+class ProtectionVerificationError(RuntimeError):
+    def __init__(self, message, security):
+        super().__init__(message)
+        self.security = security
+
+
 # 変更前にHost・配布内容・入力値をまとめて検査する。
 def preflight(plan, release_root):
     require_files(release_root, HOOK_FILES)
@@ -117,7 +124,7 @@ class SetupEngine:
         if not valid or not configured:
             reason=result.get('error') if isinstance(result,dict) else 'Invalid Guest response'
             after=result.get('after',{}) if isinstance(result,dict) else {}
-            raise RuntimeError('Prepared baseline verification failed: '+str(reason or 'DisableAntiSpyware integer value 1 was not found')+'; state='+json.dumps(after,ensure_ascii=False)+'; Guest preserved; no tools or Agents installed')
+            raise ProtectionVerificationError('Prepared baseline verification failed: '+str(reason or 'DisableAntiSpyware integer value 1 was not found')+'; state='+json.dumps(after,ensure_ascii=False)+'; Guest preserved; no tools or Agents installed', result)
 
     # UAC結果を受け取ってから次へ進み、標準ユーザー実行で成功としない。
     def guest_phase(self, phase):
@@ -138,6 +145,8 @@ class SetupEngine:
                     error = error.replace(secret, '[REDACTED]')
             failure['error'] = error
             atomic_json(self.root / 'setup-reports' / (phase + '-failed.json'), failure)
+            if isinstance(failure.get('security'), dict):
+                raise ProtectionVerificationError(phase + ': ' + error, failure['security'])
             raise RuntimeError(phase + ': ' + error)
         # 一方のキーで完了条件を満たしても、他方の書込み拒否を進捗から隠さない。
         for entry in (result.get('registry') or {}).get('keys', []):
@@ -172,6 +181,72 @@ class SetupEngine:
         self.vm.shutdown()
         self.vm.isolate(self.state["segment"])
         self.vm.run("snapshot", self.vm.vmx, name, timeout=600)
+
+    # 修正はユーザーへ依頼し、完了後の読取り検証と保存点更新だけを自動化する。
+    def verify_with_repair(self, check, source, rebuild=None):
+        try:
+            check()
+            return
+        except ProtectionVerificationError:
+            if self.plan.get('registry_profile') != 'manual_registry':
+                raise
+        if self.request_action is None:
+            raise RuntimeError('Manual Guest repair required; open Setup GUI. Guest preserved.')
+        if self.vm.snapshots().count(source) != 1:
+            raise RuntimeError('Recovery source must exist uniquely: ' + source)
+        failed = 'r_AKanaly_failed_' + uuid.uuid4().hex
+        recovery = {'source_snapshot': source, 'failed_snapshot': failed,
+                    'phase': self.state['completed'], 'status': 'preparing_manual'}
+        self.state.setdefault('registry_recovery', {})[source] = recovery
+        atomic_json(self.state_file, self.state)
+        self.save_snapshot(failed)
+        self.vm.run('revertToSnapshot', self.vm.vmx, source, timeout=600)
+        self.vm.isolate(self.state['segment'])
+        self.vm.boot()
+        while True:
+            recovery['status'] = 'waiting_for_user'
+            atomic_json(self.state_file, self.state)
+            if not self.request_action({'kind': 'manual_registry_recovery', 'vmx': self.vm.vmx,
+                                        'source_snapshot': source, 'failed_snapshot': failed}):
+                raise RuntimeError('Manual repair paused; Guest preserved; source: ' + source)
+            # ユーザーが再起動・確認・シャットダウンを終えるまで電源操作をしない。
+            if self.vm.running():
+                self.report('Guest is still running. Please shut it down after manual verification.')
+                continue
+            self.vm.boot()
+            try:
+                self.verify_manual_baseline()
+            except ProtectionVerificationError as error:
+                self.report(str(error))
+                continue
+            # 起動後の実状態を検証してから正常停止し、停止状態を保存する。
+            self.vm.shutdown()
+            from .snapshot_recovery import replace_snapshot
+            replacement = replace_snapshot(self.vm, source,
+                self.root / 'setup-reports' / ('snapshot-recovery-' + uuid.uuid4().hex + '.json'),
+                {'failed_snapshot': failed, 'phase': self.state['completed']})
+            recovery.update(status='complete', replacement=replacement)
+            atomic_json(self.state_file, self.state)
+            self.vm.boot()
+            if rebuild is not None:
+                rebuild()
+            check()
+            return
+
+    # 起点修復後は共通配置をやり直してから同じ検証へ戻る。
+    def rebuild_common(self):
+        self.boot_guest()
+        self.stage_guest()
+        self.guest_phase('common')
+        self.configure_login()
+        self.vm.shutdown()
+        self.boot_guest()
+
+    # 起点修復後に解析種別固有の設定を再適用し、再起動後の検証へ渡す。
+    def rebuild_analysis(self, phase):
+        self.guest_phase(phase)
+        self.vm.shutdown()
+        self.boot_guest()
 
     # 登録済み保存点から検証できた状態だけを通常解析へ公開する。
     def apply(self, locked=False):
@@ -227,7 +302,7 @@ class SetupEngine:
                     self.checkpoint('baseline_verified')
             if self.state['completed']=='baseline_ready':
                 self.vm.boot()
-                self.verify_manual_baseline()
+                self.verify_with_repair(self.verify_manual_baseline, self.plan['base_snapshot'])
                 self.checkpoint('baseline_verified')
             if self.state['completed']=='baseline_verified':
                 self.boot_guest()
@@ -238,7 +313,8 @@ class SetupEngine:
                 self.boot_guest()
                 self.checkpoint('common_ready')
             if self.state['completed'] == 'common_ready':
-                self.guest_phase('verify-common')
+                self.verify_with_repair(lambda: self.guest_phase('verify-common'),
+                    self.plan.get('base_snapshot') or names['before_setup'], self.rebuild_common)
                 self.save_snapshot(names["common"])
                 self.checkpoint("common")
             for phase, preceding in (("dynamic", "common"), ("static", "dynamic")):
@@ -255,14 +331,15 @@ class SetupEngine:
                     self.guest_phase(phase)
                     self.vm.shutdown()
                     self.boot_guest()
-                    self.guest_phase("verify-" + phase)
+                    self.verify_with_repair(lambda: self.guest_phase('verify-' + phase),
+                        baseline, lambda: self.rebuild_analysis(phase))
                     self.save_snapshot(names[phase])
                     self.checkpoint(phase)
             if self.state["completed"] == "static":
                 for phase in ("dynamic", "static"):
                     self.vm.run("revertToSnapshot", self.vm.vmx, names[phase], timeout=600)
                     self.boot_guest()
-                    self.guest_phase("verify-" + phase)
+                    self.verify_with_repair(lambda: self.guest_phase('verify-' + phase), names[phase])
                     self.vm.shutdown()
                 self.checkpoint("verified")
             if self.state["completed"] == "verified":
@@ -311,3 +388,8 @@ class SetupEngine:
         credentials.save(self.root, {"R_AKANALY_GUEST_OS_PASSWORD": self.secret["guest_password"], "R_AKANALY_VMWARE_PASSWORD": self.secret.get("vm_password", "")})
         releases.activate(self.root, self.manifest, path, self.manifest["guest_revision"])
         atomic_json(self.root / 'installed-setup-plan.json', self.plan)
+        # 正常導入先だけを登録し、失敗時は完了にせず同じ設定で再試行できるようにする。
+        from .user_environment import register_installation
+        environment = register_installation(self.root)
+        atomic_json(self.root / 'setup-reports' / 'user-environment.json', environment)
+        self.report('User environment registered; reopen Terminal to use r_AKanaly from PATH')
