@@ -104,8 +104,10 @@ class SetupWizard(tk.Tk):
         canvas.bind("<Configure>", lambda event: canvas.itemconfigure(body_id, width=event.width))
         nav = ttk.Frame(self, padding=16)
         nav.pack(fill="x")
-        ttk.Button(nav, text=self.tr("戻る", "Back"), state="normal" if self.page else "disabled", command=self.back).pack(side="left")
-        ttk.Button(nav, text=self.tr("閉じる", "Close"), command=self.destroy).pack(side="right")
+        self.back_button = ttk.Button(nav, text=self.tr("戻る", "Back"), state="normal" if self.page else "disabled", command=self.back)
+        self.back_button.pack(side="left")
+        self.close_button = ttk.Button(nav, text=self.tr("閉じる", "Close"), command=self.destroy)
+        self.close_button.pack(side="right")
         if self.page < 6:
             ttk.Button(nav, text=self.tr("次へ", "Next"), command=self.next_page).pack(side="right", padx=12)
         if self.page == 0:

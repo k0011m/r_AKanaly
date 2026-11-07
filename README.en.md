@@ -107,6 +107,8 @@ Please open `r_AKanaly.exe` and use ↑ / ↓ and Enter to select an item.
 
 **First use requires trusting the analysis folder and approving its hooks in Codex.** This is separate from completing Setup. If analysis stops with `SessionStart was not observed`, please follow these steps.
 
+The successful Setup screen displays the analysis project path and hook approval instructions. Please read them and select the acknowledgement checkbox before closing Setup. This checkbox does not grant approval in Codex. If the project and hooks do not exist yet, please follow the steps below once your first analysis has prepared them.
+
 1. Open and trust the folder shown as Codex PJ (`llm.codex_project_dir` in the JSON) in Codex.
 2. In the Hooks screen, review and approve `SessionStart`, `PreToolUse` and `PermissionRequest` that use that folder's `.codex/hooks/r_AKanaly_guard.exe`.
 3. Rerun analysis from the beginning with the same JSON.

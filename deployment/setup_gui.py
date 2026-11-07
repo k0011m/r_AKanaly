@@ -24,7 +24,9 @@ class Setup(SetupWizard):
         self.activity_tick = 0
         self.activity_state = 'idle'
         self.completed_phases = 0
+        self.setup_completed = False
         super().__init__()
+        self.hook_notice_acknowledged = tk.BooleanVar(master=self, value=False)
         self.registry_profile=tk.StringVar(value='manual_registry')
         # ILSpyはdotnet+DLL構成で配布するため、単独exe指定は受け付けない。
         for name in ('ILSpy CLI', 'YARA'):
@@ -221,7 +223,7 @@ class Setup(SetupWizard):
 
     # 通信中に入力やページを変更して照合対象が食い違うことを防ぐ。
     def back(self):
-        if not self.busy:
+        if not self.busy and not self.setup_completed:
             super().back()
 
     # Guestを調査するための起動は行うが、保存点の復元や設定変更はしない。
@@ -424,8 +426,8 @@ class Setup(SetupWizard):
                         elif self.page == 6:
                             self.page = 5
                             self.render()
-                    else:
-                        messagebox.showinfo('Setup',self.tr('構築と検証が完了しました。','Setup and verification completed.'),parent=self)
+                    elif kind=='complete':
+                        self.show_hook_completion()
         except queue.Empty:
             pass
         if self.busy and self.page == 6 and self.activity_state=='running':
@@ -434,16 +436,53 @@ class Setup(SetupWizard):
             self.activity_label.configure(text=self.tr('セットアップ中','Setting up')+dots+self.tr('  完了工程 ', '  Completed phases ')+str(self.completed_phases)+'/6')
         self.after(100,self.poll)
 
-    # 構築中のGUI破棄でGuest処理を孤立させない。
+    # 成功後の初回解析前に必要な承認を、実際の導入先とともに案内する。
+    def show_hook_completion(self):
+        self.setup_completed = True
+        self.hook_notice_acknowledged.set(False)
+        project = self.setup_engine.root / 'config' / 'analysis_project'
+        for widget in self.body.winfo_children():
+            widget.destroy()
+        ttk.Label(self.body, text=self.tr('セットアップ完了：初回解析ではCodexのHook承認が必要です',
+            'Setup complete: your first analysis requires Codex hook approval'),
+            font=('Yu Gothic UI', 16, 'bold'), wraplength=1000).pack(anchor='w', pady=12)
+        ttk.Label(self.body, text=self.tr('Codexで開く解析用フォルダ：', 'Analysis project to open in Codex:')).pack(anchor='w')
+        path_var = tk.StringVar(master=self, value=str(project))
+        ttk.Entry(self.body, textvariable=path_var, state='readonly').pack(fill='x', pady=8)
+        self.hook_project_path = path_var
+        ttk.Label(self.body, text=self.tr(
+            '1. r_AKanalyで初回解析を開始し、解析用フォルダとHookが準備されたら、上のフォルダをCodexで開いて信頼してください。\n\n'
+            '2. Hooks画面で、そのフォルダの .codex/hooks/r_AKanaly_guard.exe を使う SessionStart・PreToolUse・PermissionRequest を確認して承認してください。\n\n'
+            '3. 承認待ちのエラーで解析が停止した場合は、承認後に同じ設定JSONで解析を最初から実行し直してください。\n\n'
+            'このチェックは案内を読んだことの確認です。Codex側の信頼・Hook承認を自動で行うものではありません。',
+            '1. Start your first analysis in r_AKanaly. Once the analysis project and hooks are prepared, open the folder above in Codex and trust it.\n\n'
+            '2. In Hooks, review and approve SessionStart, PreToolUse and PermissionRequest using .codex/hooks/r_AKanaly_guard.exe in that project.\n\n'
+            '3. If analysis stopped while awaiting approval, approve the hooks and restart analysis from the beginning with the same settings JSON.\n\n'
+            'This checkbox only confirms that you have read these instructions. It does not grant project trust or hook approval in Codex.'),
+            wraplength=1000, justify='left').pack(anchor='w', pady=16)
+        ttk.Checkbutton(self.body, text=self.tr('Codexの信頼・Hook承認が必要なことと、上記の手順を確認しました',
+            'I have read the instructions and understand that Codex project trust and hook approval are required'),
+            variable=self.hook_notice_acknowledged, command=self.update_hook_close_state).pack(anchor='w', pady=12)
+        self.back_button.configure(state='disabled')
+        self.update_hook_close_state()
+
+    # チェックを外した場合も閉じる操作を再び無効にする。
+    def update_hook_close_state(self):
+        self.close_button.configure(state='normal' if self.hook_notice_acknowledged.get() else 'disabled')
+
+    # 構築中や成功案内の未確認時には、タイトルバーからも終了させない。
     def close_setup(self):
         if self.busy:
             messagebox.showinfo('Setup',self.tr('処理中です。完了またはエラー表示までお待ちください。','Operation in progress; wait for completion or an error.'),parent=self)
+        elif self.setup_completed and not self.hook_notice_acknowledged.get():
+            messagebox.showinfo('Setup', self.tr('Hookの案内を読み、確認チェックを入れてください。',
+                'Please read the hook instructions and select the acknowledgement checkbox.'), parent=self)
         else:
             self.destroy()
 
     # 共通の閉じるボタンにも処理中ガードを適用する。
     def destroy(self):
-        if getattr(self,'busy',False):
+        if getattr(self,'busy',False) or (getattr(self,'setup_completed',False) and not self.hook_notice_acknowledged.get()):
             self.close_setup()
         else:
             super().destroy()

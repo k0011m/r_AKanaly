@@ -105,6 +105,8 @@ Ghidra・Java（Temurin JDK）・DiE・FLOSS・capa・ILSpy／ilspycmd・.NETは
 
 **初回はCodex側で解析用フォルダの信頼・Hook承認が必要です。** Setupの完了とは別の操作です。解析中に`SessionStart was not observed`で停止した場合は、次の手順で対応してください。
 
+Setupの成功画面には、解析用フォルダのパスとHook承認の手順が表示されます。案内を読み、確認チェックを入れてから閉じてください。このチェックだけではCodex側の承認は完了しません。フォルダとHookがまだ存在しない場合は、初回解析で準備された後に以下を行ってください。
+
 1. 画面の「Codex PJ」（JSONの`llm.codex_project_dir`）に表示されたフォルダをCodexで開き、信頼してください。
 2. Hooks画面で、そのフォルダの`.codex/hooks/r_AKanaly_guard.exe`を使う`SessionStart`・`PreToolUse`・`PermissionRequest`を確認して承認してください。
 3. 同じJSONで解析を最初から実行し直してください。
