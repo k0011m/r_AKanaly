@@ -17,6 +17,19 @@ def quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 class VMware:
+    # 元VMを復元・起動せず、指定保存点から独立した完全クローンを作る。
+    def clone_from_snapshot(self, destination, snapshot):
+        destination = Path(destination).resolve()
+        if destination.exists() or destination.parent.is_relative_to(Path(self.vmx).resolve().parent):
+            raise ValueError('Clone destination must be new and outside the source VM directory')
+        if self.running() or self.snapshots().count(snapshot) != 1:
+            raise RuntimeError('Clone requires a stopped source VM and a unique snapshot')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        self.run('clone', self.vmx, str(destination), 'full', '-snapshot=' + snapshot,
+                 '-cloneName=r_AKanaly Setup', timeout=7200)
+        if not destination.is_file():
+            raise RuntimeError('Full clone did not create the destination VMX; source preserved')
+
     # vmrunの件数ヘッダーを除き、復元に使用する保存点名を読み取る。
     def snapshots(self):
         output=self.run('listSnapshots',self.vmx)

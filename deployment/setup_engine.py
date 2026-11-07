@@ -178,31 +178,41 @@ class SetupEngine:
 
     # 設定後の再起動と実状態確認を必ず保存点作成より先に行う。
     def save_snapshot(self, name):
+        if name == self.plan.get('base_snapshot') or name in self.vm.snapshots():
+            raise RuntimeError('Existing snapshot is protected; refusing to reuse name: ' + name)
         self.vm.shutdown()
         self.vm.isolate(self.state["segment"])
         self.vm.run("snapshot", self.vm.vmx, name, timeout=600)
 
     # 修正はユーザーへ依頼し、完了後の読取り検証と保存点更新だけを自動化する。
     def verify_with_repair(self, check, source, rebuild=None):
-        try:
-            check()
-            return
-        except ProtectionVerificationError:
-            if self.plan.get('registry_profile') != 'manual_registry':
-                raise
+        pending = getattr(self, 'state', {}).get('registry_recovery', {}).get(source)
+        resuming = bool(pending and pending.get('status') == 'waiting_for_user')
+        if not resuming:
+            try:
+                check()
+                return
+            except ProtectionVerificationError:
+                if self.plan.get('registry_profile') != 'manual_registry':
+                    raise
         if self.request_action is None:
             raise RuntimeError('Manual Guest repair required; open Setup GUI. Guest preserved.')
         if self.vm.snapshots().count(source) != 1:
             raise RuntimeError('Recovery source must exist uniquely: ' + source)
-        failed = 'r_AKanaly_failed_' + uuid.uuid4().hex
-        recovery = {'source_snapshot': source, 'failed_snapshot': failed,
-                    'phase': self.state['completed'], 'status': 'preparing_manual'}
-        self.state.setdefault('registry_recovery', {})[source] = recovery
-        atomic_json(self.state_file, self.state)
-        self.save_snapshot(failed)
-        self.vm.run('revertToSnapshot', self.vm.vmx, source, timeout=600)
-        self.vm.isolate(self.state['segment'])
-        self.vm.boot()
+        if resuming:
+            # 中断後は現在の手動修正を維持し、元の保存点へ戻さない。
+            recovery = pending
+            failed = recovery['failed_snapshot']
+        else:
+            failed = 'r_AKanaly_failed_' + uuid.uuid4().hex
+            recovery = {'source_snapshot': source, 'failed_snapshot': failed,
+                        'phase': self.state['completed'], 'status': 'preparing_manual'}
+            self.state.setdefault('registry_recovery', {})[source] = recovery
+            atomic_json(self.state_file, self.state)
+            self.save_snapshot(failed)
+            self.vm.run('revertToSnapshot', self.vm.vmx, source, timeout=600)
+            self.vm.isolate(self.state['segment'])
+            self.vm.boot()
         while True:
             recovery['status'] = 'waiting_for_user'
             atomic_json(self.state_file, self.state)
@@ -221,10 +231,14 @@ class SetupEngine:
                 continue
             # 起動後の実状態を検証してから正常停止し、停止状態を保存する。
             self.vm.shutdown()
-            from .snapshot_recovery import replace_snapshot
-            replacement = replace_snapshot(self.vm, source,
+            from .snapshot_recovery import clone_snapshot
+            replacement = clone_snapshot(self.vm, source,
                 self.root / 'setup-reports' / ('snapshot-recovery-' + uuid.uuid4().hex + '.json'),
                 {'failed_snapshot': failed, 'phase': self.state['completed']})
+            self.state.setdefault('snapshot_clones', {})[source] = replacement['recovery_snapshot']
+            for key, value in self.state.get('snapshots', {}).items():
+                if value == source:
+                    self.state['snapshots'][key] = replacement['recovery_snapshot']
             recovery.update(status='complete', replacement=replacement)
             atomic_json(self.state_file, self.state)
             self.vm.boot()
@@ -247,6 +261,17 @@ class SetupEngine:
         self.guest_phase(phase)
         self.vm.shutdown()
         self.boot_guest()
+
+    # 元の選択を保存したまま、Setup内だけで修正済み分岐を参照する。
+    def effective_snapshot(self, name):
+        seen = set()
+        clones = self.state.get('snapshot_clones', {})
+        while name in clones:
+            if name in seen:
+                raise RuntimeError('Snapshot clone mapping contains a cycle')
+            seen.add(name)
+            name = clones[name]
+        return name
 
     # 登録済み保存点から検証できた状態だけを通常解析へ公開する。
     def apply(self, locked=False):
@@ -279,7 +304,19 @@ class SetupEngine:
                     raise RuntimeError("Selected VM is running. Shut it down before setup; no snapshot was reverted.")
                 if manual and self.vm.snapshots().count(self.plan.get('base_snapshot'))!=1:
                     raise ValueError('Prepared baseline snapshot must exist uniquely in selected VM')
-                if self.plan["mode"] == "copy":
+                if manual:
+                    # 手動方式では「既存VMを使用」の入力でも元VMを変更せず完全クローンを使用する。
+                    destination = (Path(self.plan['clone_path']) if self.plan['mode'] == 'copy'
+                                   else self.root / 'vm' / uuid.uuid4().hex / 'r_AKanaly.vmx')
+                    self.report('Creating full VM clone from selected snapshot; original VM will not be modified')
+                    self.vm.clone_from_snapshot(destination, self.plan['base_snapshot'])
+                    self.state['source_vmx'] = self.vm.vmx
+                    self.state['source_snapshot'] = self.plan['base_snapshot']
+                    self.vm.vmx = str(destination.resolve())
+                    self.state['owned_full_clone'] = True
+                    # 完全クローンは元の保存点ツリーを持たないため、クローン内の開始保存点を使う。
+                    self.state.setdefault('snapshot_clones', {})[self.plan['base_snapshot']] = names['before_setup']
+                elif self.plan["mode"] == "copy":
                     if Path(self.plan['clone_path']).exists():
                         raise ValueError('Clone destination already exists; no files were overwritten')
                     from .vm_copy import copy_stopped_vm
@@ -289,10 +326,18 @@ class SetupEngine:
                 self.vm.run("snapshot", self.vm.vmx, names["before_setup"], timeout=600)
                 self.checkpoint("prepared")
             self.vm.vmx = self.state["vmx"]
+            if manual and (not self.state.get('owned_full_clone')
+                           or Path(self.vm.vmx).resolve() == Path(self.plan['vmx']).resolve()):
+                raise RuntimeError('Legacy setup state targets the original VM. Use a new installation directory to create a protected full clone. No source VM operation was performed.')
+            # 保存工程の分岐より先に手動待ちを復帰し、再実行で修正状態を復元により失わない。
+            for source, recovery in list(self.state.get('registry_recovery', {}).items()):
+                if recovery.get('status') == 'waiting_for_user':
+                    rebuild = self.rebuild_common if self.state['completed'] == 'common_ready' else None
+                    self.verify_with_repair(self.verify_manual_baseline, source, rebuild)
             if self.state["completed"] == "prepared":
                 self.report("Guest common: restoring baseline, isolating network and waiting for startup")
                 self.vm.shutdown()
-                self.vm.run("revertToSnapshot", self.vm.vmx, self.plan.get("base_snapshot") or names["before_setup"], timeout=600)
+                self.vm.run("revertToSnapshot", self.vm.vmx, self.effective_snapshot(self.plan.get("base_snapshot") or names["before_setup"]), timeout=600)
                 self.vm.isolate(self.state["segment"])
                 if manual:
                     # 起点検証が失敗しても、再試行時に手動修正を上書きしない。
@@ -302,7 +347,7 @@ class SetupEngine:
                     self.checkpoint('baseline_verified')
             if self.state['completed']=='baseline_ready':
                 self.vm.boot()
-                self.verify_with_repair(self.verify_manual_baseline, self.plan['base_snapshot'])
+                self.verify_with_repair(self.verify_manual_baseline, self.effective_snapshot(self.plan['base_snapshot']))
                 self.checkpoint('baseline_verified')
             if self.state['completed']=='baseline_verified':
                 self.boot_guest()
@@ -313,8 +358,9 @@ class SetupEngine:
                 self.boot_guest()
                 self.checkpoint('common_ready')
             if self.state['completed'] == 'common_ready':
+                self.vm.boot()
                 self.verify_with_repair(lambda: self.guest_phase('verify-common'),
-                    self.plan.get('base_snapshot') or names['before_setup'], self.rebuild_common)
+                    self.effective_snapshot(self.plan.get('base_snapshot') or names['before_setup']), self.rebuild_common)
                 self.save_snapshot(names["common"])
                 self.checkpoint("common")
             for phase, preceding in (("dynamic", "common"), ("static", "dynamic")):
