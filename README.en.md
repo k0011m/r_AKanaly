@@ -2,6 +2,10 @@
 
 [日本語](README.md) | **English**
 
+## Windows Pro is recommended for the Guest OS
+
+**We recommend Windows Pro for the analysis VM. In Setup, select “Windows Pro: manual Group Policy (most recommended)” as the Guest protection method. This recommendation applies to the Guest; Windows Pro is not required on the Host.**
+
 > [!IMPORTANT]
 > **Please visit the official website first.**
 > **[▶ Explore r_AKanaly — r-akanaly.com](https://r-akanaly.com/en/)**
@@ -9,10 +13,10 @@
 
 A Windows application that coordinates sample analysis and saves HTML reports and analysis results.
 
-**Version: 0.1.9**
+**Version: 0.1.10**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
-For Windows Pro Guests, Setup also offers **manual Group Policy (recommended)**. Selecting it immediately displays the `gpedit.msc` instructions. Configure the dedicated Guest manually and reboot; Setup reads real-time protection, behavior monitoring, IOAV and Tamper Protection. All four must report OFF; unavailable values do not pass. This mode does not require editing `DisableAntiSpyware`. Both manual modes use a new snapshot branch in the same VM.
+For Windows Pro Guests, Setup also offers **manual Group Policy (most recommended)**. Selecting it immediately displays the `gpedit.msc` instructions. Configure the dedicated Guest manually and reboot; Setup reads real-time protection, behavior monitoring, IOAV and Tamper Protection. All four must report OFF; unavailable values do not pass. This mode does not require editing `DisableAntiSpyware`. Both manual modes use a new snapshot branch in the same VM.
 
 ## What is r_AKanaly?
 
@@ -40,7 +44,7 @@ Setup configures Guest automatic login, power settings, analysis-specific protec
 
 Before saving the dynamic-analysis snapshot, Setup automatically places 24 harmless observation documents (four each of TXT, CSV, RTF, HTML, DOCX and XLSX) in `r_AKanaly_ObservationDocuments` under the Guest's Public Documents folder. No additional application is required. Setup verifies the inventory and hashes after reboot. Snapshot restoration resets the documents; they are not regenerated for every analysis, and existing files are not overwritten.
 
-Please select manual registry setup, manual Group Policy for Windows Pro (recommended), or configuration and verification through official APIs after startup. The following registry instructions apply only to manual registry mode. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
+Please select manual registry setup, manual Group Policy for Windows Pro (most recommended), or configuration and verification through official APIs after startup. The following registry instructions apply only to manual registry mode. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
 
 In manual mode, Setup restores the selected powered-off snapshot and creates a separately named Setup snapshot in the same VM. This step does not boot or reboot the Guest. Setup then boots that branch and verifies the configured values and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
 
@@ -73,7 +77,7 @@ The new branch depends on the original disks and is not an independent VM backup
 
 ## Installation
 
-Please download `r_AKanaly-0.1.9-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
+Please download `r_AKanaly-0.1.10-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
 
 1. Open `Setup.exe` and select Japanese or English.
 2. Choose the application installation directory and the results directory.
@@ -300,7 +304,7 @@ This example records the dynamic-analysis screen every 10 seconds. `{analysis_di
 | `llm.codex_project_dir` | Codex's analysis workspace, not the report destination. Changing it may require reviewing Hook approval for the new workspace. |
 | `codex_malware_guard` | Host operation restrictions; not a setting to change when switching samples. |
 
-Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.9 operation.
+Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.10 operation.
 
 ### Please save and check the configuration before running
 

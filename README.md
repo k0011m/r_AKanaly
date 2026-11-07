@@ -2,6 +2,10 @@
 
 **日本語** | [English](README.en.md)
 
+## Guest OSはWindows Proを推奨します
+
+**解析用VMにはWindows Proを推奨します。SetupのGuest保護方式では「Windows Pro：手動グループポリシー設定（最推奨）」を選んでください。これはGuest側の推奨であり、Host側にWindows Proは必須ではありません。**
+
 > [!IMPORTANT]
 > **まずは公式Webサイトをご覧ください。**
 > **[▶ r_AKanalyの詳しい紹介はこちら — r-akanaly.com](https://r-akanaly.com/)**
@@ -9,7 +13,7 @@
 
 Windows上で検体の解析を進め、HTMLレポートと解析結果を保存するソフトウェアです。
 
-**バージョン：0.1.9**
+**バージョン：0.1.10**
 ダウンロードと、このバージョンの動作確認範囲・制限事項は[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)を確認してください。
 
 ## r_AKanalyとは
@@ -38,7 +42,7 @@ SetupはGuestの自動ログイン、電源設定、解析用の保護設定、�
 
 Setupでは、動的解析用スナップショットを保存する前に、Guestのパブリックドキュメント内の`r_AKanaly_ObservationDocuments`へ無害な観測用文書24件（TXT・CSV・RTF・HTML・DOCX・XLSXを各4件）を自動配置します。追加アプリは不要です。再起動後に一覧とハッシュを確認して保存するため、解析時は保存点の復元で文書を元に戻せます。解析ごとの再生成や既存ファイルの上書きは行いません。
 
-Guest保護の設定方式は、手動レジストリ設定、Windows Proの手動グループポリシー設定（推奨）、または起動後の公式APIによる設定・確認を選択してください。グループポリシー方式では、選択直後に表示される`gpedit.msc`の案内に従ってGuest内で手動設定してください。再起動後にリアルタイム保護・動作監視・IOAV・改ざん防止の4項目を読み取り確認します。この方式では`DisableAntiSpyware`の編集は不要です。以下はレジストリ方式の説明です。手動方式をプルダウンで選ぶと、その場で注意書きと起点スナップショット欄が表示されます。対象Guestで設定し、再起動後も`DisableAntiSpyware=1`が保持され、Defenderが停止していることを確認してください。その後、Guestをシャットダウンして保存点を作成し、「スナップショット一覧を更新」から選択してください。
+Guest保護の設定方式は、手動レジストリ設定、Windows Proの手動グループポリシー設定（最推奨）、または起動後の公式APIによる設定・確認を選択してください。グループポリシー方式では、選択直後に表示される`gpedit.msc`の案内に従ってGuest内で手動設定してください。再起動後にリアルタイム保護・動作監視・IOAV・改ざん防止の4項目を読み取り確認します。この方式では`DisableAntiSpyware`の編集は不要です。以下はレジストリ方式の説明です。手動方式をプルダウンで選ぶと、その場で注意書きと起点スナップショット欄が表示されます。対象Guestで設定し、再起動後も`DisableAntiSpyware=1`が保持され、Defenderが停止していることを確認してください。その後、Guestをシャットダウンして保存点を作成し、「スナップショット一覧を更新」から選択してください。
 
 手動方式では、Setupは停止中の指定保存点へ復元し、同じVM内に別名のSetup専用保存点を作ります。この操作にGuestの起動・再起動は不要です。その後、その枝でGuestを起動し、設定値と保護の実状態を確認してからツール・Agentを配置します。動的・静的環境は同じ新しい共通保存点からそれぞれ派生します。起点の検証に失敗した場合はGuestを保持します。同じ入力内容で再開すると、復元し直さず再確認します。別の保存点を選ぶ場合は、新しいインストール先を指定してください。
 
@@ -71,7 +75,7 @@ Guest保護の設定方式は、手動レジストリ設定、Windows Proの手�
 
 ## インストール
 
-[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.9-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
+[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.10-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
 
 1. `Setup.exe`を開き、日本語または英語を選んでください。
 2. 本体の保存先と、レポートなどの保存先を指定してください。
@@ -298,7 +302,7 @@ EXE入力ではZIP関連項目を使わないため、この`zip_password: null`
 | `llm.codex_project_dir` | Codexの解析用作業場所。レポート保存先ではありません。変更するとHook承認の確認が必要になる場合があります。 |
 | `codex_malware_guard` | Host側の操作制限。検体を替えるために変更する項目ではありません。 |
 
-追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.9の通常運用では`llm.report_format`は`"html"`を維持してください。
+追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.10の通常運用では`llm.report_format`は`"html"`を維持してください。
 
 ### 保存して、実行前に確認してください
 
