@@ -55,6 +55,7 @@ def build(assets, output):
         copy_guest_source(ROOT / 'deployment/guest/provision.ps1', staging)
         copy_guest_source(ROOT / 'deployment/guest/configure_registry.ps1', staging)
         shutil.copy2(ROOT / 'deployment/guest/agent_healthcheck.py', staging)
+        shutil.copy2(ROOT / 'deployment/guest/observation_documents.py', staging)
         shutil.copy2(ROOT / 'tools/guest_install_static_tools.py', staging)
         (staging / 'setup_dynamic_portable.ps1').write_text(portable_dynamic(source / 'setup_dynamic.ps1'), encoding='utf-8-sig')
         pending = staging / 'guest.zip.pending'

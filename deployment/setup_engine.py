@@ -37,9 +37,9 @@ def preflight(plan, release_root):
         raise ValueError('Host Procmon not found')
     if plan["mode"] not in ("existing", "copy") or not plan["username"].strip():
         raise ValueError("Invalid VM mode / username")
-    if plan.get('registry_profile','existing') not in ('existing','analysis','official_api','manual_registry'):
+    if plan.get('registry_profile','existing') not in ('existing','analysis','official_api','manual_registry','group_policy'):
         raise ValueError('Unsupported Guest protection profile')
-    if plan.get('registry_profile')=='manual_registry' and not str(plan.get('base_snapshot') or '').strip():
+    if plan.get('registry_profile') in ('manual_registry','group_policy') and not str(plan.get('base_snapshot') or '').strip():
         raise ValueError('Manual registry setup requires a prepared baseline snapshot')
     if plan["mode"] == "copy" and (not Path(plan["clone_path"]).is_absolute() or Path(plan["clone_path"]).suffix.lower() != '.vmx'):
         raise ValueError("Clone path must be an absolute .vmx path")
@@ -114,16 +114,23 @@ class SetupEngine:
                 local=Path(directory)/'baseline-check.ps1'
                 local.write_text(script,encoding='utf-8-sig')
                 self.vm.upload(local,remote)
-                result=self.vm.query('. '+quote(remote)+'; Confirm-GuestManualProtection',elevated=True,timeout=300)
+                option=' -GroupPolicy' if self.plan.get('registry_profile')=='group_policy' else ''
+                result=self.vm.query('. '+quote(remote)+'; Confirm-GuestManualProtection'+option,elevated=True,timeout=300)
         finally:
             try:self.vm.ps('Remove-Item -LiteralPath '+quote(remote)+' -Force -ErrorAction SilentlyContinue')
             except Exception:self.report('Guest baseline diagnostic cleanup could not be confirmed')
         valid=isinstance(result,dict) and result.get('success') is True
         checks=result.get('registry_checks',[]) if isinstance(result,dict) else []
         configured=any(row.get('read_success') is True and row.get('kind') in ('DWord','QWord') and type(row.get('value')) is int and row['value']==1 for row in checks)
+        if self.plan.get('registry_profile')=='group_policy':
+            # ポリシー方式はレジストリ値で判定せず、読み取った四項目の証拠を照合する。
+            from guest_protection import valid_group_policy_evidence
+            configured=valid_group_policy_evidence(result)
         atomic_json(self.root/'setup-reports'/'verify-baseline.json',{'snapshot':self.plan['base_snapshot'],'security':result,'complete':bool(valid and configured)})
         if not valid or not configured:
             reason=result.get('error') if isinstance(result,dict) else 'Invalid Guest response'
+            if not reason and self.plan.get('registry_profile')=='group_policy':
+                reason='Group Policy effective-state evidence is incomplete or invalid'
             after=result.get('after',{}) if isinstance(result,dict) else {}
             raise ProtectionVerificationError('Prepared baseline verification failed: '+str(reason or 'DisableAntiSpyware integer value 1 was not found')+'; state='+json.dumps(after,ensure_ascii=False)+'; Guest preserved; no tools or Agents installed', result)
 
@@ -195,7 +202,7 @@ class SetupEngine:
                 check()
                 return
             except ProtectionVerificationError as error:
-                if self.plan.get('registry_profile') != 'manual_registry':
+                if self.plan.get('registry_profile') not in ('manual_registry','group_policy'):
                     raise
                 diagnostic = {'message': str(error), 'security': error.security}
         if self.request_action is None:
@@ -359,7 +366,7 @@ class SetupEngine:
                     self.state['previous_snapshots']={'dynamic':previous['vmware']['snapshot_name'],'static':previous['static_vm']['snapshot_name']}
                 atomic_json(self.state_file, self.state)
             self.vm = self.vm_factory(self.plan["vmrun"], self.plan["vmx"], self.plan["username"], self.secret["guest_password"], self.secret.get("vm_password", ""))
-            manual=self.plan.get('registry_profile')=='manual_registry'
+            manual=self.plan.get('registry_profile') in ('manual_registry','group_policy')
             names = self.state["snapshots"]
             if self.state["completed"] == "none":
                 if self.vm.running():
@@ -480,7 +487,7 @@ class SetupEngine:
         settings["guest"].update(username=self.plan["username"], prompt_username=False)
         settings["credentials"]["env_file_path"] = None
         settings["static_vm"].update(enabled=True, snapshot_name=self.state["snapshots"]["static"], guest_root=r"C:\Users\Public\CodexGuestAgent\analysis_bench", guest_python=r"C:\Users\Public\r_AKanaly\runtime\python\pythonw.exe")
-        settings['static_vm']['security_strategy']={'official_api':'official_api_v1','manual_registry':'manual_registry_v1'}.get(self.plan.get('registry_profile'),'legacy_snapshot')
+        settings['static_vm']['security_strategy']={'official_api':'official_api_v1','manual_registry':'manual_registry_v1','group_policy':'group_policy_v1'}.get(self.plan.get('registry_profile'),'legacy_snapshot')
         selected_python = self.plan.get('guest_tools', {}).get('Python (Ghidra / PyGhidra)', {})
         if selected_python.get('reuse'):
             settings['static_vm']['guest_python'] = selected_python['path']

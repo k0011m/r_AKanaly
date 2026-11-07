@@ -27,10 +27,10 @@ try {
         $result.security=& (Join-Path $root 'prepare_analysis_security.ps1') -TimeoutSeconds 180
         $result.complete=($result.security.success -eq $true -and $result.security.bypass -eq $false)
         if(-not $result.complete){$result.error='Guest effective protection settings were not confirmed'}
-    } elseif($marker.security_strategy -eq 'manual_registry_v1') {
-        $result.strategy='manual_registry_v1'
+    } elseif($marker.security_strategy -in @('manual_registry_v1','group_policy_v1')) {
+        $result.strategy=$marker.security_strategy
         . (Join-Path $root 'defender_gate.ps1')
-        $result.security=Confirm-GuestManualProtection
+        $result.security=Confirm-GuestManualProtection -GroupPolicy:($marker.security_strategy -eq 'group_policy_v1')
         $result.complete=($result.security.success -eq $true)
         if(-not $result.complete){$result.error=$result.security.error}
     } else {throw 'Unsupported Guest security strategy'}
@@ -52,6 +52,10 @@ $result | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath TARGET -Encoding U
             raise RuntimeError('Required Guest security strategy is missing: '+expected)
         if result.get('complete') is not True:
             raise RuntimeError('Guest security preparation failed: '+str(result.get('error','invalid response')))
+        if result.get('strategy')=='group_policy_v1':
+            from guest_protection import valid_group_policy_evidence
+            if not valid_group_policy_evidence(result.get('security')):
+                raise RuntimeError('Guest group policy verification evidence is invalid')
         return result
     finally:
         session.config['vmrun_timeout_seconds']=previous

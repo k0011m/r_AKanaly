@@ -17,7 +17,7 @@ GUEST_FILES = (
 HOST_FILES = ('analysis_mcp_server.py', 'host_evidence.py', 'bridge_service.py', 'bridge_client.py',
               'console_input.py', 'console_lifecycle.py', 'desktop_state.py',
               'login_readiness.py', 'security_readiness.py', 'visual_controller.py')
-AGENT_FILES = tuple('VMWARE_GUEST_CONTROL_PACKAGE/' + folder + '/' + name
+AGENT_FILES = ('guest_protection.py',) + tuple('VMWARE_GUEST_CONTROL_PACKAGE/' + folder + '/' + name
                    for folder, names in (('guest', GUEST_FILES), ('host', HOST_FILES),
                                          ('tools', ('vm_guest_control.py',)))
                    for name in names)

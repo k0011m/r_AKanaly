@@ -340,6 +340,11 @@ class DynamicSession:
         (self.output / (phase + '_defender.json')).write_text(json.dumps(result, indent=2), encoding='utf-8')
         if result.get('token') != token or result.get('success') is not True or result.get('policy_version') != 3:
             raise RuntimeError('Guest Defender check failed: ' + str(result.get('error', 'invalid response')))
+        if result.get('strategy') == 'group_policy_v1':
+            from guest_protection import valid_group_policy_evidence
+            if not valid_group_policy_evidence(result):
+                raise RuntimeError('Guest group policy verification evidence is invalid')
+            return
         if result.get('strategy') == 'manual_registry_v1':
             # 手動設定は変更せず、Guestが記録した二回の実状態をHost側でも照合する。
             checks=result.get('checks') or []

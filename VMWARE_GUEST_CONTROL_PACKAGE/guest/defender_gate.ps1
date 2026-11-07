@@ -1,4 +1,4 @@
-﻿# SmartScreenの公式ポリシーと、ログイン済みユーザーのStoreアプリ設定を確認する。
+# SmartScreenの公式ポリシーと、ログイン済みユーザーのStoreアプリ設定を確認する。
 function Get-GuestSmartScreenSettings([bool]$Apply) {
     $targets=@(
         @{path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\System';name='EnableSmartScreen'},
@@ -72,26 +72,51 @@ function Get-GuestDefenderBypassState {
     return $result
 }
 
+# 四項目の実測値を区別し、欠落や不正型をOFFと取り違えず診断へ渡す。
+function Get-GuestProtectionObservation($State) {
+    $items=@{}
+    foreach($name in @('RealTimeProtectionEnabled','BehaviorMonitorEnabled','IoavProtectionEnabled','IsTamperProtected')) {
+        $property=if($null -ne $State) { $State.PSObject.Properties[$name] } else { $null }
+        if($null -eq $property -or $property.Value -isnot [bool]) {
+            $items[$name]='unavailable'
+        } elseif($property.Value) {
+            $items[$name]='on'
+        } else {
+            $items[$name]='off'
+        }
+    }
+    return $items
+}
+
 # 手動設定は変更せず、起動直後の過渡状態を避けて実稼働状態を二回確認する。
-function Confirm-GuestManualProtection {
+function Confirm-GuestManualProtection([switch]$GroupPolicy) {
     $result=@{success=$false;bypass=$false;apply_requested=$false;policy_version=3;strategy='manual_registry_v1';checks=@();stable_checks=0}
+    if($GroupPolicy) { $result.strategy='group_policy_v1' }
+    $result.protection_states=Get-GuestProtectionObservation $null
     try {
+        if($GroupPolicy) {
+            # エディションとエディターの存在を確認するだけで、ポリシーは変更しない。
+            $edition=Get-ItemPropertyValue -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name EditionID -ErrorAction Stop
+            $result.platform=@{edition=$edition;gpedit_available=(Test-Path -LiteralPath "$env:WINDIR\System32\gpedit.msc")}
+            if($edition -notmatch '^Professional' -or -not $result.platform.gpedit_available) { throw 'Windows Pro with gpedit.msc is required for this profile' }
+        }
         $boot=(Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime
         $remaining=90-((Get-Date)-$boot).TotalSeconds
         if($remaining -gt 0) { Start-Sleep -Seconds ([int][Math]::Ceiling($remaining)) }
         $result.boot_utc=$boot.ToUniversalTime().ToString('o')
-        $result.registry_checks=@((Get-GuestDefenderBypassState).registry_checks)
+        if(-not $GroupPolicy) { $result.registry_checks=@((Get-GuestDefenderBypassState).registry_checks) }
         foreach($attempt in 1..2) {
             $state=Get-MpComputerStatus -ErrorAction Stop
             $entry=$state | Select-Object AMRunningMode,AMServiceEnabled,RealTimeProtectionEnabled,BehaviorMonitorEnabled,IoavProtectionEnabled,IsTamperProtected
             $result.checks+=@($entry)
             $result.after=$entry
+            $result.protection_states=Get-GuestProtectionObservation $state
+            $result.unconfirmed_items=@($result.protection_states.Keys | Sort-Object | Where-Object { $result.protection_states[$_] -ne 'off' })
             # DWORD/QWORD=1だけでは通過させず、実測した保護状態がOFFであることを必須にする。
-            if($state.RealTimeProtectionEnabled -ne $false -or $state.BehaviorMonitorEnabled -ne $false -or $state.IoavProtectionEnabled -ne $false) {
-                throw 'Guest protection is active or unavailable; complete manual Guest setup and restart Windows'
+            if($result.unconfirmed_items.Count -gt 0) {
+                throw ('Guest protection is ON or unavailable: '+($result.unconfirmed_items -join ', '))
             }
             if($state.AMRunningMode -notin @('Normal','Not running')) { throw 'Guest Defender running mode is unavailable or unsupported' }
-            if($state.IsTamperProtected -ne $false) { throw 'Guest Tamper Protection is ON or unavailable' }
             $result.stable_checks++
             if($attempt -eq 1) { Start-Sleep -Seconds 5 }
         }
@@ -107,6 +132,7 @@ function Confirm-GuestDefenderDisabled([int]$TimeoutSeconds, [bool]$Apply = $fal
     if(Test-Path -LiteralPath $markerPath) {
         $marker=Get-Content -LiteralPath $markerPath -Raw -ErrorAction Stop | ConvertFrom-Json
         if($marker.security_strategy -eq 'manual_registry_v1') { return (Confirm-GuestManualProtection) }
+        if($marker.security_strategy -eq 'group_policy_v1') { return (Confirm-GuestManualProtection -GroupPolicy) }
         if($marker.security_strategy -eq 'official_api_v1') { $RequireEffectiveState=$true }
     }
     $result=@{success=$false;checks=@();stable_checks=0;apply_requested=$Apply;policy_version=3;

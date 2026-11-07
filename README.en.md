@@ -12,6 +12,8 @@ A Windows application that coordinates sample analysis and saves HTML reports an
 **Version: 0.1.6**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
+For Windows Pro Guests, Setup also offers **manual Group Policy (recommended)**. Selecting it immediately displays the `gpedit.msc` instructions. Configure the dedicated Guest manually and reboot; Setup reads real-time protection, behavior monitoring, IOAV and Tamper Protection. All four must report OFF; unavailable values do not pass. This mode does not require editing `DisableAntiSpyware`. The prepared snapshot and full-clone workflow remains the same.
+
 ## What is r_AKanaly?
 
 **r_AKanaly is a Windows application that connects malware analysis tools and custom resident VM agents to Codex, taking a sample from investigation through to an HTML report.**
@@ -36,7 +38,9 @@ If .NET Framework 3.5 is not enabled in the Guest, please attach exactly one Win
 
 Setup configures Guest automatic login, power settings, analysis-specific protection settings, an isolated network and snapshots. Please use a dedicated analysis VM and shut it down before starting the installation. Do not select a VM used for everyday work.
 
-Please select manual registry setup (recommended) or configuration and verification through official APIs after startup. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
+Before saving the dynamic-analysis snapshot, Setup automatically places 24 harmless observation documents (four each of TXT, CSV, RTF, HTML, DOCX and XLSX) in `r_AKanaly_ObservationDocuments` under the Guest's Public Documents folder. No additional application is required. Setup verifies the inventory and hashes after reboot. Snapshot restoration resets the documents; they are not regenerated for every analysis, and existing files are not overwritten.
+
+Please select manual registry setup, manual Group Policy for Windows Pro (recommended), or configuration and verification through official APIs after startup. The following registry instructions apply only to manual registry mode. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
 
 In manual mode, Setup creates a full clone from that baseline, boots the clone, and verifies the registry value and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot, rather than older analysis snapshots. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
 

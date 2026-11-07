@@ -80,9 +80,9 @@ function Stop-InstalledAgents {
 
 # 確認時には設定値と実稼働状態を別々に記録する。
 function Verify-Security {
-    if($choices.registry_profile -eq 'manual_registry') {
+    if($choices.registry_profile -in @('manual_registry','group_policy')) {
         . (Join-Path $dynamic 'defender_gate.ps1')
-        $report=Confirm-GuestManualProtection
+        $report=Confirm-GuestManualProtection -GroupPolicy:($choices.registry_profile -eq 'group_policy')
         if($report.success -ne $true) {
             $exception=New-Object System.InvalidOperationException 'Guest manual protection verification failed'
             $exception.Data['security']=$report
@@ -143,6 +143,7 @@ if($Phase -eq 'common') {
     $marker=@{guest_only=$true;sample_directory=(Join-Path $root 'samples')}
     if($choices.registry_profile -eq 'official_api') { $marker.security_strategy='official_api_v1' }
     if($choices.registry_profile -eq 'manual_registry') { $marker.security_strategy='manual_registry_v1' }
+    if($choices.registry_profile -eq 'group_policy') { $marker.security_strategy='group_policy_v1' }
     $marker | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $dynamic 'guest-install-marker.json') -Encoding UTF8
     & (Join-Path $dynamic 'setup_lifecycle.ps1') -Root $dynamic -GuestUser $User | Out-Null
     if($choices.registry_profile -eq 'official_api') {
@@ -184,6 +185,15 @@ if($Phase -eq 'common') {
 
     }
 } elseif($Phase -eq 'dynamic') {
+    # 動的保存点に無害な文書を含める。静的分岐と解析ごとの再生成には接続しない。
+    $documents=Join-Path ([Environment]::GetFolderPath('CommonDocuments')) 'r_AKanaly_ObservationDocuments'
+    if(-not [IO.Path]::IsPathRooted($documents)) { throw 'Guest public documents path is unavailable' }
+    Invoke-Checked (Join-Path $dynamic 'agent\runtime\python.exe') @((Join-Path $payload 'observation_documents.py'),'--destination',$documents)
+    $observationDocuments=@{root=$documents;baseline=(Get-Content -LiteralPath (Join-Path $documents 'baseline.json') -Raw | ConvertFrom-Json)}
+    # 標準権限で実行した検体からも観測用文書を変更できるよう、専用フォルダだけに付与する。
+    $account=New-Object Security.Principal.NTAccount ($env:COMPUTERNAME+'\'+$User)
+    $sid=$account.Translate([Security.Principal.SecurityIdentifier]).Value
+    Invoke-Checked "$env:WINDIR\System32\icacls.exe" @($documents,'/grant',('*'+$sid+':(OI)(CI)(M)'))
     New-Item -ItemType Directory -Force -Path (Join-Path $dynamic 'tools') | Out-Null
     Copy-Item -LiteralPath (Join-Path $payload 'Procmon64.exe') -Destination (Join-Path $dynamic 'tools\Procmon64.exe') -Force
     Copy-Item -LiteralPath (Join-Path $payload 'Sysmon64.exe') -Destination (Join-Path $dynamic 'tools\Sysmon64.exe') -Force
@@ -251,6 +261,10 @@ if($Phase -eq 'common') {
     Invoke-Checked (Join-Path $dynamic 'agent\runtime\python.exe') @('-c','import pyzipper; import ctypes; print(1)')
     Invoke-Checked (Join-Path $dynamic 'agent\runtime\python.exe') @((Join-Path $payload 'agent_healthcheck.py'),'--python',(Join-Path $dynamic 'agent\runtime\python.exe'),'--code',(Join-Path $dynamic 'agent\code'))
     if($Phase -eq 'verify-dynamic') {
+        $documents=Join-Path ([Environment]::GetFolderPath('CommonDocuments')) 'r_AKanaly_ObservationDocuments'
+        if(-not [IO.Path]::IsPathRooted($documents)) { throw 'Guest public documents path is unavailable' }
+        Invoke-Checked (Join-Path $dynamic 'agent\runtime\python.exe') @((Join-Path $payload 'observation_documents.py'),'--destination',$documents,'--verify')
+        $observationDocuments=@{root=$documents;baseline=(Get-Content -LiteralPath (Join-Path $documents 'baseline.json') -Raw | ConvertFrom-Json)}
         if(-not (Get-Service -Name 'Sysmon*' | Where-Object Status -eq 'Running')) { throw 'Sysmon service is not running' }
         Get-ScheduledTask -TaskName r_AKanaly_DynamicCapture -ErrorAction Stop | Out-Null
         Invoke-Checked "$env:WINDIR\System32\wpr.exe" @('-profiles')
@@ -266,4 +280,4 @@ if($Phase -eq 'common') {
         foreach($property in $tools.paths.PSObject.Properties) { if(-not (Test-Path -LiteralPath $property.Value)) { throw ('Missing tool: '+$property.Name) } }
     }
 }
-@{complete=$true;phase=$Phase;utc=[DateTime]::UtcNow.ToString('o');security=$security;registry=$registryResult}
+@{complete=$true;phase=$Phase;utc=[DateTime]::UtcNow.ToString('o');security=$security;registry=$registryResult;observation_documents=$observationDocuments}
