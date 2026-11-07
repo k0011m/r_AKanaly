@@ -9,10 +9,10 @@
 
 A Windows application that coordinates sample analysis and saves HTML reports and analysis results.
 
-**Version: 0.1.6**
+**Version: 0.1.8**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
-For Windows Pro Guests, Setup also offers **manual Group Policy (recommended)**. Selecting it immediately displays the `gpedit.msc` instructions. Configure the dedicated Guest manually and reboot; Setup reads real-time protection, behavior monitoring, IOAV and Tamper Protection. All four must report OFF; unavailable values do not pass. This mode does not require editing `DisableAntiSpyware`. The prepared snapshot and full-clone workflow remains the same.
+For Windows Pro Guests, Setup also offers **manual Group Policy (recommended)**. Selecting it immediately displays the `gpedit.msc` instructions. Configure the dedicated Guest manually and reboot; Setup reads real-time protection, behavior monitoring, IOAV and Tamper Protection. All four must report OFF; unavailable values do not pass. This mode does not require editing `DisableAntiSpyware`. Both manual modes use a new snapshot branch in the same VM.
 
 ## What is r_AKanaly?
 
@@ -42,7 +42,7 @@ Before saving the dynamic-analysis snapshot, Setup automatically places 24 harml
 
 Please select manual registry setup, manual Group Policy for Windows Pro (recommended), or configuration and verification through official APIs after startup. The following registry instructions apply only to manual registry mode. Selecting manual mode in the dropdown immediately displays the instructions and baseline snapshot field. Configure the selected Guest, restart it, and confirm that `DisableAntiSpyware=1` persists and Defender is stopped. Shut down the Guest, create a snapshot, and select it using Refresh snapshot list.
 
-In manual mode, Setup creates a full clone from that baseline, boots the clone, and verifies the registry value and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot, rather than older analysis snapshots. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
+In manual mode, Setup restores the selected powered-off snapshot and creates a separately named Setup snapshot in the same VM. This step does not boot or reboot the Guest. Setup then boots that branch and verifies the configured values and effective protection state before deploying tools or Agents. Dynamic and static environments each derive from the same newly provisioned common snapshot. A failed baseline check preserves Guest state. Resume with identical inputs to recheck without restoring again. Please use a new installation directory if you select a different baseline.
 
 ### Checks before manual setup
 
@@ -53,7 +53,7 @@ In manual mode, Setup creates a full clone from that baseline, boots the clone, 
 
 Tamper Protection can block protection changes through the registry. Turning it OFF does not guarantee that `DisableAntiSpyware` takes effect on every Windows/Defender configuration. Please see [Microsoft's explanation](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/security-malware-windows-defender-disableantispyware). In manual mode, Setup performs read-only verification and does not toggle Tamper Protection or rewrite registry values. Use REG_DWORD for new values even on 64-bit Windows. Existing REG_QWORD values can be read, but neither type nor value alone establishes success.
 
-On verification failure, the dialog shows the registry values, protection state, and failure reason observed at the failure. A value of `1` does not pass if protection is ON or unavailable. Make manual corrections in the displayed **working clone VM**. You do not need to move the original VM or snapshots. After correcting, restarting, verifying, and shutting down the Guest, select Yes. Setup boots the clone for verification and, on success, saves its stopped state to a new snapshot with a different name before continuing. Existing snapshots are preserved. No pauses setup while preserving current Guest state.
+On verification failure, the dialog shows the registry values, protection state, and failure reason. A value of `1` does not pass if protection is ON or unavailable. Make manual corrections in the displayed **Setup branch of the same VM**. Do not move or delete snapshots. After correcting, restarting, verifying, and shutting down the Guest, select Yes. Setup boots the Guest for verification and, on success, saves its stopped state to a new snapshot with a different name before continuing. Existing snapshots are preserved. No pauses setup while preserving current Guest state.
 
 Successful setup registers the installation directory in the user environment variable `R_AKANALY_HOME` and user PATH. Please reopen your terminal. Settings are still selected through `current.json`; arbitrary environment variables in JSON are not automatically expanded.
 
@@ -67,13 +67,13 @@ Successful setup registers the installation directory in the user environment va
 
 **Do not create, change, or delete the similarly named location without Policies, `DisableAntiVirus`, other values or keys, or permissions. Do not perform these steps on the Host.** If the target key is missing, check the entered path instead of substituting another location. Follow Setup instructions for restarting, verifying, and shutting down the Guest.
 
-**In manual mode, v0.1.5 and later create an independent full VM clone from the selected snapshot and provision only that clone. The original VM and snapshots are preserved.** This also applies when selecting an existing VM. Allow disk space and time for a full copy. Do not rerun a failed v0.1.3/v0.1.4 Setup; use this version with a new installation directory. Legacy progress targeting the original VM is rejected without modifying it.
+**Setup adds a new snapshot branch in the same VM instead of cloning the entire VM. It does not delete or overwrite the selected baseline or existing snapshots, but it changes the VM’s current state and configuration.** Restoration discards work not saved in a snapshot. Please save any necessary work and shut down the Guest before starting. Suspended VMs are rejected. Do not run analysis or perform manual work in the same VM during provisioning.
 
-If automatic cloning fails, please follow the Setup dialog to create a **full clone** in VMware from the specified snapshot at the specified destination. Do not use a linked clone. Once cloning finishes, keep the clone powered off and select Yes in Setup. Setup verifies independent disk references before continuing. You do not need to move or delete snapshots in the original VM.
+The new branch depends on the original disks and is not an independent VM backup. A full copy is not required, but snapshot deltas and deployed tools still need free space. Progress from an interrupted full-clone setup cannot be reused; please select a new installation directory. Do not delete Setup snapshots during provisioning.
 
 ## Installation
 
-Please download `r_AKanaly-0.1.6-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
+Please download `r_AKanaly-0.1.8-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
 
 1. Open `Setup.exe` and select Japanese or English.
 2. Choose the application installation directory and the results directory.
@@ -298,7 +298,7 @@ This example records the dynamic-analysis screen every 10 seconds. `{analysis_di
 | `llm.codex_project_dir` | Codex's analysis workspace, not the report destination. Changing it may require reviewing Hook approval for the new workspace. |
 | `codex_malware_guard` | Host operation restrictions; not a setting to change when switching samples. |
 
-Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.6 operation.
+Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.8 operation.
 
 ### Please save and check the configuration before running
 

@@ -84,7 +84,7 @@ class Setup(SetupWizard):
             for widget in self.body.winfo_children():
                 widget.destroy()
             manual = self.registry_profile.get() in ('manual_registry','group_policy')
-            ttk.Label(self.body, text=self.tr('手動方式では元VMを起動して調査しません。既存ツールを再利用する場合だけ指定してください。配置時にクローン内で検証します。' if manual else 'Guestで検出した結果です。Pythonの専用環境は依存関係も検証します。', 'Manual mode does not start the original VM for inspection. Specify existing tools only if you want to reuse them; they are verified in the clone during provisioning.' if manual else 'Actual Guest inventory. Private Python dependencies are verified during setup.'), wraplength=1000).pack(anchor='w')
+            ttk.Label(self.body, text=self.tr('手動方式では元VMを起動して調査しません。既存ツールを再利用する場合だけ指定してください。配置時にSetup用の枝で検証します。' if manual else 'Guestで検出した結果です。Pythonの専用環境は依存関係も検証します。', 'Manual mode does not start the original VM for inspection. Specify existing tools only if you want to reuse them; they are verified in the Setup branch during provisioning.' if manual else 'Actual Guest inventory. Private Python dependencies are verified during setup.'), wraplength=1000).pack(anchor='w')
             self.tool_table(self.guest, guest=True)
             for name, status in self.status.items():
                 status.configure(text=self.tr('利用者指定・配置時に検証' if manual else ('Guest検出済み' if self.guest[name][0].get() else '未検出'), 'User specified; verified during provisioning' if manual else ('Detected in Guest' if self.guest[name][0].get() else 'Not found')))
@@ -113,7 +113,7 @@ class Setup(SetupWizard):
 
     # 基点欄は方式選択の直下へまとめ、重複した自由入力欄を表示しない。
     def entry_row(self,label,var,**kwargs):
-        if self.page==3 and var is self.env['base_snapshot']:
+        if self.page==3 and any(var is self.env[key] for key in ('base_snapshot', 'vm_mode', 'clone_path')):
             return
         super().entry_row(label,var,**kwargs)
 
@@ -122,7 +122,7 @@ class Setup(SetupWizard):
         profile=('manual_registry','official_api','group_policy')[self.protection_choice.current()]
         manual=profile!='official_api'
         self.registry_profile.set(profile)
-        self.manual_instruction_label.configure(text=self.manual_protection_instructions()+self.tr('\n\n再起動後の状態を確認し、Guestをシャットダウンして保存点を作成し、下で選択してください。指定保存点から完全クローンを作成します。元VM・保存点は変更しません。クローン分の空き容量が必要です。','\n\nVerify the state after reboot, shut down the Guest, create a snapshot and select it below. Setup creates a full clone. The original VM and snapshots are preserved. Extra space is required.'))
+        self.manual_instruction_label.configure(text=self.manual_protection_instructions()+self.tr('\n\n再起動後の状態を確認し、Guestをシャットダウンして保存点を作成し、下で選択してください。指定保存点へ復元し、同じVM内にSetup専用の新しい枝を作成します。VMは複製しません。既存保存点は削除・上書きしません。保存点に含まれない現在の作業状態は復元時に失われます。必要な作業は先に保存してください。','\n\nVerify the state after reboot, shut down the Guest, create a snapshot and select it below. Setup restores that snapshot and creates a new Setup branch in the same VM. No VM copy is created. Existing snapshots are never deleted or overwritten. Current work not saved in a snapshot is lost on restore; save any needed work first.'))
         self.manual_baseline_panel.pack_forget()
         self.automatic_baseline_panel.pack_forget()
         (self.manual_baseline_panel if manual else self.automatic_baseline_panel).pack(fill='x',pady=10)
@@ -144,8 +144,8 @@ class Setup(SetupWizard):
             engine = getattr(self, 'setup_engine', None)
             state = getattr(engine, 'state', {}) if engine else {}
             vmx = state.get('vmx', '')
-            if not state.get('owned_full_clone') or not vmx or Path(vmx).resolve() == Path(self.env['vmx_path'].get()).resolve():
-                messagebox.showinfo('Setup', self.tr('作業用クローンの準備が完了していません。元VMは開きません。', 'The working clone is not ready. The original VM will not be opened.'), parent=self)
+            if not state.get('owned_setup_branch') or not vmx or Path(vmx).resolve() != Path(self.env['vmx_path'].get()).resolve():
+                messagebox.showinfo('Setup', self.tr('Setup用の枝の準備が完了していません。VMは開きません。', 'The Setup branch is not ready. The VM will not be opened.'), parent=self)
                 return
         elif self.env['vm_mode'].get()=='copy':
             clone=Path(self.env['clone_path'].get())
@@ -163,8 +163,8 @@ class Setup(SetupWizard):
     # 選択した構築内容だけを取り出し、資格情報は別オブジェクトへ分離する。
     def inputs(self):
         plan={'install_dir':self.install_dir.get(), 'output_dir':self.output_dir.get(), 'vmrun':self.host['vmrun'][1].get(),
-              'vmx':self.env['vmx_path'].get(), 'username':self.env['guest_username'].get(), 'mode':self.env['vm_mode'].get(),
-              'clone_path':self.env['clone_path'].get(), 'base_snapshot':self.env['base_snapshot'].get(), 'registry_profile':self.registry_profile.get(),
+              'vmx':self.env['vmx_path'].get(), 'username':self.env['guest_username'].get(), 'mode':'existing',
+              'clone_path':'', 'base_snapshot':self.env['base_snapshot'].get(), 'registry_profile':self.registry_profile.get(),
               'guest_tools':{k:{'reuse':v[0].get(),'path':v[1].get()} for k,v in self.guest.items()}}
         plan['accept_sysinternals_license'] = getattr(self, 'accepted_sysinternals', False)
         plan['host_procmon'] = self.host['Procmon (Host conversion)'][1].get() if self.host['Procmon (Host conversion)'][0].get() else None
@@ -227,7 +227,7 @@ class Setup(SetupWizard):
     # Guestを調査するための起動は行うが、保存点の復元や設定変更はしない。
     def inspect(self,plan,secret,paths):
         if plan.get('registry_profile') in ('manual_registry','group_policy'):
-            raise RuntimeError('Manual setup must not inspect the original Guest; tools are verified in the clone')
+            raise RuntimeError('Manual setup must not inspect the original Guest; tools are verified in the Setup branch')
         vm=VMware(plan['vmrun'],plan['vmx'],plan['username'],secret['guest_password'],secret['vm_password'])
         started=not vm.running()
         vm.boot()
@@ -302,10 +302,10 @@ class Setup(SetupWizard):
         return self.tr(
             '保護の実状態がON・取得不能の場合は検証に失敗します。以下の観測値を確認してください。\n\n',
             'Verification fails if effective protection is ON or unavailable. Check the observations below.\n\n') + '\n'.join(lines) + self.tr(
-            '\n\n【操作するのは作業用クローンVMです】\n元VM・元保存点を移動・削除・上書きする操作は不要です。設定を確認・修正してWindowsを再起動し、状態確認後にGuestをシャットダウンしてください。\n「はい」：Setupがこのクローンを起動して読取り検証し、成功したら正常停止して別名の新しい保存点を作り、以降の構築先をその保存点へ切り替えます。元の保存点は保持します。\n「いいえ」：作業中のGuest状態を保持して中断します。\n\n作業用クローンVM：',
-            '\n\n[Work only in the working clone VM]\nDo not move, delete, or overwrite the original VM or snapshots. Check/correct the settings, restart Windows, verify the state, then shut down the Guest.\nYes: Setup boots this clone for read-only verification; on success it shuts down normally, creates a new snapshot with a different name, and uses it for subsequent provisioning. Existing snapshots are preserved.\nNo: Pause while preserving the current Guest state.\n\nWorking clone VM: ') + details['vmx'] + self.tr(
-            '\nクローン内の復元元保存点（保持）：', '\nRestore point within the clone (preserved): ') + details['source_snapshot'] + self.tr(
-            '\n元VM（変更しません）：', '\nOriginal VM (unchanged): ') + details.get('original_vmx', '') + self.tr(
+            '\n\n【操作するのはSetup用の枝を選択したVMです】\n元VM・元保存点を移動・削除・上書きする操作は不要です。設定を確認・修正してWindowsを再起動し、状態確認後にGuestをシャットダウンしてください。\n「はい」：SetupがこのVMを起動して読取り検証し、成功したら正常停止して別名の新しい保存点を作り、以降の構築先をその保存点へ切り替えます。元の保存点は保持します。\n「いいえ」：作業中のGuest状態を保持して中断します。\n\nSetup用の枝を選択したVM：',
+            '\n\n[Work only in the Setup branch of the selected VM]\nDo not move, delete, or overwrite the original VM or snapshots. Check/correct the settings, restart Windows, verify the state, then shut down the Guest.\nYes: Setup boots this VM for read-only verification; on success it shuts down normally, creates a new snapshot with a different name, and uses it for subsequent provisioning. Existing snapshots are preserved.\nNo: Pause while preserving the current Guest state.\n\nVM containing the Setup branch: ') + details['vmx'] + self.tr(
+            '\nSetup用の復元元保存点（保持）：', '\nRestore point within the Setup branch (preserved): ') + details['source_snapshot'] + self.tr(
+            '\n選択したVM（同一VM内で構築）：', '\nSelected VM (provisioned in place): ') + details.get('original_vmx', '') + self.tr(
             '\n最初に選択した元保存点（変更しません）：', '\nOriginally selected snapshot (unchanged): ') + details.get('original_snapshot', '')
 
     # 手動変更中は進捗を止め、再確認するまで同じVMを保持する。
@@ -453,7 +453,7 @@ class Setup(SetupWizard):
         if self.busy or var is None:
             return
         if self.registry_profile.get() in ('manual_registry','group_policy'):
-            messagebox.showinfo('Setup', self.tr('元VMを起動しないため、手動方式の構築前はGuest参照を行いません。再利用するツールのパスを入力してください。クローンへの配置時に検証します。', 'To preserve the original VM, Guest browsing is unavailable before manual-mode provisioning. Enter any tool paths to reuse; they will be verified in the clone.'), parent=self)
+            messagebox.showinfo('Setup', self.tr('元VMを起動しないため、手動方式の構築前はGuest参照を行いません。再利用するツールのパスを入力してください。Setup用の枝への配置時に検証します。', 'To preserve the original VM, Guest browsing is unavailable before manual-mode provisioning. Enter any tool paths to reuse; they will be verified in the Setup branch.'), parent=self)
             return
         from pathlib import PureWindowsPath
         plan,secret=self.inputs()

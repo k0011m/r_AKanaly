@@ -41,6 +41,8 @@ def preflight(plan, release_root):
         raise ValueError('Unsupported Guest protection profile')
     if plan.get('registry_profile') in ('manual_registry','group_policy') and not str(plan.get('base_snapshot') or '').strip():
         raise ValueError('Manual registry setup requires a prepared baseline snapshot')
+    if plan.get('registry_profile') in ('manual_registry','group_policy') and plan['mode'] != 'existing':
+        raise ValueError('Manual setup uses a branch in the selected VM; select existing mode')
     if plan["mode"] == "copy" and (not Path(plan["clone_path"]).is_absolute() or Path(plan["clone_path"]).suffix.lower() != '.vmx'):
         raise ValueError("Clone path must be an absolute .vmx path")
     for name in ("guest.zip", "guest-manifest.json", "r_AKanaly_setting.example.json", 'sysinternals-downloads.json', 'r_AKanaly_guard.exe', 'r_AKanaly_ghidra_mcp.exe'):
@@ -342,10 +344,50 @@ class SetupEngine:
             atomic_json(self.state_file, self.state)
             return
 
+    # 起点の復元を一度だけ行い、停止中に新規名を作成してから構築対象として登録する。
+    def create_setup_branch(self):
+        self.vm.require_powered_off()
+        names = self.vm.snapshots()
+        source = self.plan['base_snapshot']
+        target = self.state['snapshots']['before_setup']
+        if names.count(source) != 1:
+            raise RuntimeError('Prepared baseline must exist uniquely')
+        branch = self.state.get('setup_branch')
+        if branch is None:
+            if target in names:
+                raise RuntimeError('Setup branch name already exists; no snapshot was modified')
+            branch = self.state['setup_branch'] = {'source': source, 'target': target, 'status': 'restoring', 'preserved': names}
+            atomic_json(self.state_file, self.state)
+        if branch['source'] != source or branch['target'] != target:
+            raise RuntimeError('Setup branch differs from the original inputs')
+        if not set(branch['preserved']).issubset(names):
+            raise RuntimeError('An existing snapshot is missing; setup stopped')
+        if branch['status'] == 'restoring':
+            if target in names:
+                raise RuntimeError('Unexpected snapshot name collision; no snapshot was modified')
+            self.vm.run('revertToSnapshot', self.vm.vmx, source, timeout=600)
+            self.vm.require_powered_off()
+            branch['status'] = 'creating'
+            atomic_json(self.state_file, self.state)
+        if branch['status'] == 'creating':
+            # 保存直後にHostが停止しても同名を上書きせず、作成済みなら引き継ぐ。
+            if target not in self.vm.snapshots():
+                self.vm.run('snapshot', self.vm.vmx, target, timeout=600)
+            names = self.vm.snapshots()
+            if names.count(target) != 1 or not set(branch['preserved']).issubset(names):
+                raise RuntimeError('Setup branch verification failed; snapshots were preserved')
+            branch['status'] = 'complete'
+        if branch['status'] != 'complete':
+            raise RuntimeError('Unknown setup branch state')
+        self.state.update(vmx=self.vm.vmx, source_vmx=self.vm.vmx, source_snapshot=source, owned_setup_branch=True)
+        self.state.setdefault('snapshot_clones', {})[source] = target
+        self.checkpoint('prepared')
+
     # 登録済み保存点から検証できた状態だけを通常解析へ公開する。
     def apply(self, locked=False):
         self.root.mkdir(parents=True, exist_ok=True)
-        with (nullcontext() if locked else installation_lock(self.root)):
+        # 別インストール先のSetupも同じVMを同時に復元しないようVM単位で排他する。
+        with (nullcontext() if locked else installation_lock(self.root)), installation_lock(Path(self.plan['vmx']).resolve().parent):
             releases.verify_files(self.release, self.manifest)
             self.guest_manifest = preflight(self.plan, self.release)
             self.external_paths = external_tools.prepare(self.release, self.root, self.plan.get('accept_sysinternals_license'), self.report)
@@ -354,6 +396,8 @@ class SetupEngine:
                 self.state = json.loads(self.state_file.read_text(encoding="utf-8"))
                 if self.state["plan_hash"] != self.plan_hash:
                     raise ValueError("Another setup state exists; use its original inputs or a new installation directory")
+                if self.state.get('clone_attempt') or self.state.get('owned_full_clone'):
+                    raise RuntimeError('Legacy full-clone progress cannot resume as a same-VM branch; use a new installation directory')
             else:
                 tag = time.strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
                 self.state = {"plan_hash": self.plan_hash, "completed": "none", "segment": str(uuid.uuid4()),
@@ -374,31 +418,27 @@ class SetupEngine:
                 if manual and self.vm.snapshots().count(self.plan.get('base_snapshot'))!=1:
                     raise ValueError('Prepared baseline snapshot must exist uniquely in selected VM')
                 if manual:
-                    # 手動方式では「既存VMを使用」の入力でも元VMを変更せず完全クローンを使用する。
-                    destination = (Path(self.state['clone_attempt']['destination']) if self.state.get('clone_attempt') else
-                                   (Path(self.plan['clone_path']) if self.plan['mode'] == 'copy'
-                                    else self.root / 'vm' / uuid.uuid4().hex / 'r_AKanaly.vmx'))
-                    self.report('Creating full VM clone from selected snapshot; original VM will not be modified')
-                    self.create_working_clone(destination)
-                    self.state['source_vmx'] = self.vm.vmx
-                    self.state['source_snapshot'] = self.plan['base_snapshot']
-                    self.vm.vmx = str(destination.resolve())
-                    self.state['owned_full_clone'] = True
-                    # 完全クローンは元の保存点ツリーを持たないため、クローン内の開始保存点を使う。
-                    self.state.setdefault('snapshot_clones', {})[self.plan['base_snapshot']] = names['before_setup']
+                    self.report('Creating a new Setup branch in the selected VM; existing snapshots are preserved')
+                    self.create_setup_branch()
                 elif self.plan["mode"] == "copy":
                     if Path(self.plan['clone_path']).exists():
                         raise ValueError('Clone destination already exists; no files were overwritten')
                     from .vm_copy import copy_stopped_vm
                     copy_stopped_vm(self.vm.vmx, self.plan['clone_path'], self.vm.running, self.report)
                     self.vm.vmx = self.plan["clone_path"]
-                self.state["vmx"] = self.vm.vmx
-                self.vm.run("snapshot", self.vm.vmx, names["before_setup"], timeout=600)
-                self.checkpoint("prepared")
+                if not manual:
+                    self.state["vmx"] = self.vm.vmx
+                    self.vm.run("snapshot", self.vm.vmx, names["before_setup"], timeout=600)
+                    self.checkpoint("prepared")
             self.vm.vmx = self.state["vmx"]
-            if manual and (not self.state.get('owned_full_clone')
-                           or Path(self.vm.vmx).resolve() == Path(self.plan['vmx']).resolve()):
-                raise RuntimeError('Legacy setup state targets the original VM. Use a new installation directory to create a protected full clone. No source VM operation was performed.')
+            if manual and (not self.state.get('owned_setup_branch')
+                           or Path(self.vm.vmx).resolve() != Path(self.plan['vmx']).resolve()):
+                raise RuntimeError('Setup branch identity is missing or targets another VM; no restore was performed')
+            if manual:
+                branch = self.state.get('setup_branch', {})
+                expected = set(branch.get('preserved', [])) | {names['before_setup']}
+                if branch.get('status') != 'complete' or not expected.issubset(self.vm.snapshots()):
+                    raise RuntimeError('Setup branch or an existing snapshot is missing; no restore was performed')
             # 保存工程の分岐より先に手動待ちを復帰し、再実行で修正状態を復元により失わない。
             for source, recovery in list(self.state.get('registry_recovery', {}).items()):
                 if recovery.get('status') == 'waiting_for_user':

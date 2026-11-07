@@ -17,6 +17,15 @@ def quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 class VMware:
+    # 一覧に出ないサスペンド状態も拒否し、現在状態を勝手に破棄しない。
+    def require_powered_off(self):
+        import re
+        if self.running():
+            raise RuntimeError('Shut down the selected VM before setup')
+        config = Path(self.vmx).read_text(encoding='utf-8-sig')
+        if re.search(r'(?mi)^checkpoint\.vmState\s*=\s*"[^"\r\n]+"', config):
+            raise RuntimeError('Selected VM is suspended; shut it down before setup. Suspended state was preserved.')
+
     # 元VMを復元・起動せず、指定保存点から独立した完全クローンを作る。
     def clone_from_snapshot(self, destination, snapshot):
         destination = Path(destination).resolve()
