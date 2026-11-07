@@ -9,7 +9,7 @@
 
 A Windows application that coordinates sample analysis and saves HTML reports and analysis results.
 
-**Version: 0.1.8**
+**Version: 0.1.9**
 Please visit [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) for downloads, the scope of validation and limitations for this version.
 
 For Windows Pro Guests, Setup also offers **manual Group Policy (recommended)**. Selecting it immediately displays the `gpedit.msc` instructions. Configure the dedicated Guest manually and reboot; Setup reads real-time protection, behavior monitoring, IOAV and Tamper Protection. All four must report OFF; unavailable values do not pass. This mode does not require editing `DisableAntiSpyware`. Both manual modes use a new snapshot branch in the same VM.
@@ -73,7 +73,7 @@ The new branch depends on the original disks and is not an independent VM backup
 
 ## Installation
 
-Please download `r_AKanaly-0.1.8-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
+Please download `r_AKanaly-0.1.9-installer-windows-x64.zip` from the assets on [GitHub Releases](https://github.com/k0011m/r_AKanaly/releases) and extract the entire archive into one folder. The `Source code` downloads and the update ZIP without `installer` in its name are not initial installation packages. Please keep `Setup.exe` with the accompanying files and follow these steps.
 
 1. Open `Setup.exe` and select Japanese or English.
 2. Choose the application installation directory and the results directory.
@@ -300,7 +300,7 @@ This example records the dynamic-analysis screen every 10 seconds. `{analysis_di
 | `llm.codex_project_dir` | Codex's analysis workspace, not the report destination. Changing it may require reviewing Hook approval for the new workspace. |
 | `codex_malware_guard` | Host operation restrictions; not a setting to change when switching samples. |
 
-Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.8 operation.
+Other useful settings are `llm.language` for report language, `llm.model` / `llm.reasoning_effort` for model and reasoning configuration, and `static_analysis.yara_rule_path` for optional YARA rules. Model availability depends on your Codex environment. Keep `llm.report_format` set to `"html"` for normal 0.1.9 operation.
 
 ### Please save and check the configuration before running
 
