@@ -1483,6 +1483,7 @@ def _run_single_pipeline(argv: list[str] | None = None, *, settings_override=Non
                 evidence_disk = EvidenceDisk(disk_control, llm_preparation.output_dir / 'dynamic_artifacts',
                                              settings.dynamic_analysis['evidence_disk'])
                 evidence_disk.create()
+                dynamic_session.evidence_disk = evidence_disk
             # 保存先の解析フォルダ変数をHostで解決し、LLM有無によらず同じ設定を使う。
             dynamic_session.settings = dict(dynamic_session.settings, llm_control=dict(
                 dynamic_session.settings['llm_control'], screenshot_output_dir=

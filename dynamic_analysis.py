@@ -244,6 +244,10 @@ class DynamicSession:
             raise RuntimeError('Guest is still powered on; evidence snapshot needs a normal shutdown before a new experiment')
         name = 'r_AKanaly_recovery_evidence_' + self.id
         control.run_vmrun(config, ['snapshot', self.vmware.vmx_path, name], check=True)
+        # VM保存点の参照を結果フォルダ外にも残し、ディスクの保持理由を追跡する。
+        disk = getattr(self, 'evidence_disk', None)
+        if disk is not None:
+            disk.record_snapshot(name, self.vmware.vmx_path)
         self.recovery_preserved = True
         (self.output / 'preserved_snapshot.json').write_text(json.dumps({'snapshot': name,
             'analysis_id': self.id, 'memory_preserved': False, 'reason': 'guest_unavailable'}), encoding='utf-8')

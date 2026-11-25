@@ -13,7 +13,7 @@
 
 Windows上で検体の解析を進め、HTMLレポートと解析結果を保存するソフトウェアです。
 
-**バージョン：0.1.10**
+**バージョン：0.1.11**
 ダウンロードと、このバージョンの動作確認範囲・制限事項は[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)を確認してください。
 
 ## r_AKanalyとは
@@ -75,7 +75,7 @@ Guest保護の設定方式は、手動レジストリ設定、Windows Proの手�
 
 ## インストール
 
-[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.10-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
+[GitHub Releases](https://github.com/k0011m/r_AKanaly/releases)の添付ファイルから、`r_AKanaly-0.1.11-installer-windows-x64.zip`をダウンロードし、全体を1つのフォルダへ展開してください。`Source code`や、ファイル名に`installer`を含まない更新用ZIPは初回インストール用ではありません。`Setup.exe`だけを別のフォルダへ移さず、次の順に進めてください。
 
 1. `Setup.exe`を開き、日本語または英語を選んでください。
 2. 本体の保存先と、レポートなどの保存先を指定してください。
@@ -302,7 +302,7 @@ EXE入力ではZIP関連項目を使わないため、この`zip_password: null`
 | `llm.codex_project_dir` | Codexの解析用作業場所。レポート保存先ではありません。変更するとHook承認の確認が必要になる場合があります。 |
 | `codex_malware_guard` | Host側の操作制限。検体を替えるために変更する項目ではありません。 |
 
-追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.10の通常運用では`llm.report_format`は`"html"`を維持してください。
+追加で、`llm.language`はレポート言語、`llm.model`・`llm.reasoning_effort`は利用するモデルと推論設定、`static_analysis.yara_rule_path`は任意のYARAルールを指定する項目です。モデルの利用可否は使用中のCodex環境に依存します。0.1.11の通常運用では`llm.report_format`は`"html"`を維持してください。
 
 ### 保存して、実行前に確認してください
 
@@ -387,3 +387,7 @@ Codex：調査結果と観測ログを照合し、レポートを作成
 
 Ghidra・Java・DiE・FLOSS・capa・ILSpy／ilspycmd・.NET・Procmon・Sysmonは配布物に同梱せず、Setupが各公式配布元から取得します。Pythonなど、本体とAgentに必要な実行ライブラリは同梱します。初回セットアップにはHostのインターネット接続が必要です。取得した配布物が登録済みのサイズ・ハッシュと一致しない場合、Setupは配置を停止します。表示されたエラーを確認し、更新されたSetup／配布資材を使用してください。
 
+
+## 証拠ディスクの保持（0.1.11）
+
+証拠VMDKは結果ZIPとは別に保持します。`dynamic_analysis.evidence_disk.storage_dir`で保存先を指定でき、未指定時はユーザーホームの`rAK/disks`です。保存点を利用する間は削除しないでください。旧形式の結果内VMDKは自動移動せず、結果フォルダの削除を拒否します。

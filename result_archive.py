@@ -1,5 +1,6 @@
 """完了した解析結果を検証付きの通常ZIPへ保存する。"""
 import hashlib
+import json
 from pathlib import Path
 import shutil
 import uuid
@@ -23,6 +24,18 @@ def inventory(root):
     return paths
 
 
+# 旧形式のディスクも削除しない。参照の有無が不明でもVMDKを結果削除へ巻き込まない。
+def guard_evidence(root, paths):
+    if any(p.suffix.lower() == '.vmdk' for p in paths):
+        raise RuntimeError('結果内にVMDKが残っています。参照保護のためZIP化・元フォルダ削除を中止します')
+    state_path = root / 'dynamic_artifacts' / 'state.json'
+    if state_path.exists():
+        state = json.loads(state_path.read_text(encoding='utf-8'))
+        disk = Path(state['disk']).resolve()
+        if disk.is_relative_to(root.resolve()) or not disk.is_file():
+            raise RuntimeError('証拠ディスクの永続保存先が不正または欠損しています。結果を保持します')
+
+
 # レポートと全成果物を照合し、完成ZIPを確定した後だけ元フォルダを削除する。
 def archive_results(directory, report):
     root = Path(directory).absolute()
@@ -37,6 +50,7 @@ def archive_results(directory, report):
     temporary = root.with_name(root.name + '.' + uuid.uuid4().hex + '.zip.tmp')
     try:
         paths = inventory(root)
+        guard_evidence(root, paths)
         hashes = {}
         with zipfile.ZipFile(temporary, 'x', compression=zipfile.ZIP_DEFLATED,
                              compresslevel=1, allowZip64=True) as archive:
@@ -60,6 +74,7 @@ def archive_results(directory, report):
             with (root / name).open('rb') as source:
                 if digest(source) != expected:
                     raise RuntimeError(f'ZIP作成中に成果物が更新されました: {name}')
+        guard_evidence(root, inventory(root))
         temporary.rename(target)
         shutil.rmtree(root)
         return target

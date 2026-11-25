@@ -120,7 +120,11 @@
     "etw_enabled": true,
     "sample_task_name": "r_AKanaly_DynamicSample",
     "raw_transfer_compression": true,
-    "compression_timeout_seconds": 1800
+    "compression_timeout_seconds": 1800,
+    "evidence_disk": {
+      "enabled": false,
+      "storage_dir": null
+    }
   },
   "full_auto": {
     "enabled": false,

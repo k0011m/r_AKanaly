@@ -7,7 +7,7 @@ import sys
 import uuid
 
 DEFAULTS = {'enabled': False, 'size_mb': 4096, 'max_files': 256,
-            'max_total_mb': 2048, 'guest_paths': []}
+            'max_total_mb': 2048, 'guest_paths': [], 'storage_dir': None}
 
 
 # 未指定時は従来動作を維持し、容量制限とGuestローカルパスを実行前に検証する。
@@ -28,6 +28,10 @@ def parse_settings(value):
         if not local_guest_path(path):
             raise ValueError('Evidence sources must be absolute Guest local file paths')
     result['guest_paths'] = [str(PureWindowsPath(path)) for path in result['guest_paths']]
+    storage = result['storage_dir']
+    if storage is not None and (not isinstance(storage, str) or not storage
+                               or not Path(storage).is_absolute() or any(c in storage for c in '\x00\r\n"')):
+        raise ValueError('evidence_disk.storage_dir must be an absolute Host directory or null')
     return result
 
 
@@ -85,8 +89,13 @@ class EvidenceDisk:
         self.settings = parse_settings(settings)
         self.directory = Path(directory).resolve()
         self.id = uuid.uuid4().hex
-        self.path = self.directory / 'evidence.vmdk'
-        self.state = {'id': self.id, 'disk': str(self.path), 'phase': 'new', 'settings': self.settings}
+        storage = Path(self.settings['storage_dir'] or (Path.home() / 'rAK' / 'disks')).resolve()
+        if storage.is_relative_to(self.directory.parent) or self.directory.parent.is_relative_to(storage):
+            raise ValueError('Evidence disk storage must be separate from the analysis result directory')
+        self.path = storage / self.id / 'evidence.vmdk'
+        self.state = {'format_version': 2, 'id': self.id, 'disk': str(self.path),
+                      'storage_root': str(storage), 'retention': 'persistent', 'snapshots': [],
+                      'phase': 'new', 'settings': self.settings}
         self.items = []
 
     # 終了処理の再開でも、同じ証拠ディスクだけを識別して切り離せるようにする。
@@ -94,9 +103,27 @@ class EvidenceDisk:
     def resume(cls, session, state_path):
         state_path = Path(state_path).resolve()
         state = json.loads(state_path.read_text(encoding='utf-8'))
-        instance = cls(session, state_path.parent, state['settings'])
-        if Path(state['disk']).resolve() != instance.path or uuid.UUID(state['id']).hex != state['id']:
+        if uuid.UUID(state['id']).hex != state['id']:
             raise ValueError('Evidence disk recovery identity mismatch')
+        # 旧形式は元パスを維持し、新形式は保存rootと解析IDから参照を再構成する。
+        instance = cls.__new__(cls)
+        instance.session, instance.directory = session, state_path.parent
+        instance.settings = parse_settings(state['settings'])
+        version = state.get('format_version', 1)
+        if version == 1:
+            expected = state_path.parent / 'evidence.vmdk'
+        elif version == 2:
+            storage = Path(state['storage_root'])
+            if not storage.is_absolute() or state.get('retention') != 'persistent':
+                raise ValueError('Invalid persistent evidence storage')
+            expected = storage.resolve() / state['id'] / 'evidence.vmdk'
+            if expected.resolve().is_relative_to(state_path.parent.parent):
+                raise ValueError('Persistent disk cannot reside in the result directory')
+        else:
+            raise ValueError('Unsupported evidence state version')
+        if Path(state['disk']).resolve() != expected.resolve():
+            raise ValueError('Evidence disk recovery identity mismatch')
+        instance.path = expected.resolve()
         instance.id, instance.state = state['id'], state
         instance.items = state.get('items', [])
         return instance
@@ -108,6 +135,18 @@ class EvidenceDisk:
         temporary = self.directory / 'state.tmp'
         temporary.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding='utf-8')
         temporary.replace(self.directory / 'state.json')
+        if self.state.get('format_version') == 2 and self.path.parent.is_dir():
+            reference = self.path.parent / 'reference.tmp'
+            reference.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding='utf-8')
+            reference.replace(self.path.parent / 'reference.json')
+
+    # 結果ZIP削除後も保存点とディスクの対応を永続保存先から確認できるようにする。
+    def record_snapshot(self, name, vmx_path):
+        snapshots = list(self.state.get('snapshots', []))
+        entry = {'name': name, 'vmx_path': str(vmx_path)}
+        if entry not in snapshots:
+            snapshots.append(entry)
+        self.save(snapshots=snapshots)
 
     # 稼働中VMの構成を編集せず、空きスロットへの接続だけを許可する。
     def attach(self):
@@ -136,6 +175,7 @@ class EvidenceDisk:
     # 各解析に空ディスクを作り、前回の検体データを次の解析へ混ぜない。
     def create(self):
         self.directory.mkdir(parents=True, exist_ok=False)
+        self.path.parent.mkdir(parents=True, exist_ok=False)
         manager = Path(self.session.config['vmrun_path']).with_name('vmware-vdiskmanager.exe')
         result = subprocess.run([str(manager), '-c', '-s', str(self.settings['size_mb']) + 'MB',
             '-a', 'lsilogic', '-t', '0', str(self.path)], capture_output=True, timeout=120,
@@ -214,7 +254,7 @@ class EvidenceDisk:
         self.save(phase='imported', items=self.items, disk_read_only=True)
         return self.items
 
-    # 所有している接続だけを外す。証拠VMDK本体は解析フォルダへ残す。
+    # 所有している接続だけを外す。保存点が参照するVMDKは永続保存先へ残す。
     def detach(self):
         vmx = Path(self.session.config['vmx_path'])
         if str(vmx).lower() in self.session.vmrun('list')['output'].lower():
