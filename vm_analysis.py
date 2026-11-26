@@ -358,11 +358,11 @@ class VmAnalysisSession:
                 self.save_result_snapshot()
             elif not self.settings.save_snapshot:
                 self.checkpoint(snapshot_skipped=True)
-            # Tools停止スクリプトの失敗でも電源断せず、実状態確認とWindows正常停止を共通利用する。
+            # 正常停止とWindows停止を優先し、待機後も稼働中なら強制停止して実状態を確認する。
             from deployment.vm import VMware
             VMware(self.config['vmrun_path'], self.config['vmx_path'],
                    self.config['guest_user'], self.config['guest_password'],
-                   self.config.get('vm_password') or '').shutdown()
+                   self.config.get('vm_password') or '').shutdown(force_on_failure=True)
             self.checkpoint(vm_stopped=True, vm_retained=False)
             if self.console_lease is not None:
                 self.console_lease.restore()

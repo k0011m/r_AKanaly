@@ -706,9 +706,24 @@ def shutdown_virtual_machine(
             shutdown_error = error
         if attempt < 59:
             time.sleep(2)
-    if shutdown_error is not None:
-        raise shutdown_error
-    raise RuntimeError('対象VMのシャットダウン完了を確認できませんでした。強制停止は行いません。')
+    # 状態取得不能を起動中と決めつけず、対象VMの稼働を再確認してから電源断する。
+    if not is_virtual_machine_running(settings, encrypted_vm_password):
+        return
+    print('Normal shutdown did not complete; powering off the analysis VM.')
+    command[-1] = 'hard'
+    try:
+        result = run_command_capture_text(command, timeout=120)
+        if result.returncode:
+            shutdown_error = from_result(command, result)
+    except VmrunError as error:
+        shutdown_error = error
+    for attempt in range(60):
+        if not is_virtual_machine_running(settings, encrypted_vm_password):
+            print('Virtual machine powered off (forced).')
+            return
+        if attempt < 59:
+            time.sleep(2)
+    raise ErrorContext('対象VMの強制パワーオフ完了を確認できませんでした。後続の復元を中止します。', shutdown_error)
 
 
 # 初回の実行確認より前に対象VMの停止承認を取り、バッチ途中の予期しない起動は停止する。

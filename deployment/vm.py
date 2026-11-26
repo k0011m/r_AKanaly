@@ -119,19 +119,37 @@ foreach($setting in @('STANDBYIDLE','HIBERNATEIDLE')) {
         return result
 
     # ハード停止へ勝手に切り替えず、正常停止を待って保存可能にする。
-    def shutdown(self):
+    def shutdown(self, force_on_failure=False):
+        failure = None
         if self.running():
             try:
                 self.run("stop", self.vmx, "soft")
-            except VmrunError:
+            except VmrunError as error:
+                failure = error
                 if self.running():
-                    # Toolsの状態変更スクリプトが詰まっても、Windows自身の通常停止を試す。
-                    # /fやハード電源断は使わず、Guestが応答しなければ失敗を返す。
-                    self.run("runProgramInGuest", self.vmx, "-noWait", r"C:\Windows\System32\shutdown.exe", "/s", "/t", "0", guest=True, timeout=30)
+                    try:
+                        self.run("runProgramInGuest", self.vmx, "-noWait", r"C:\Windows\System32\shutdown.exe", "/s", "/t", "0", guest=True, timeout=30)
+                    except VmrunError as error:
+                        if not force_on_failure:
+                            raise
+                        failure = error
         deadline = time.monotonic() + 180
         while self.running():
             if time.monotonic() > deadline:
-                raise RuntimeError("Guest shutdown timed out")
+                if not force_on_failure:
+                    raise RuntimeError("Guest shutdown timed out") from failure
+                print('Normal shutdown did not complete; powering off the analysis VM.')
+                try:
+                    self.run("stop", self.vmx, "hard")
+                except VmrunError as error:
+                    failure = error
+                # コマンド終了だけで成功扱いせず、停止確認後にだけ保存点処理へ進む。
+                for attempt in range(60):
+                    if not self.running():
+                        return
+                    if attempt < 59:
+                        time.sleep(2)
+                raise RuntimeError("Guest power-off could not be confirmed") from failure
             time.sleep(2)
 
     # 固定スクリプトはUTF-16で渡し、空白や日本語をシェル再解釈させない。
